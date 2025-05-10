@@ -417,6 +417,11 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_CPU_NUM_OF_RESERVED_CPU":
     lambda: int(os.getenv("VLLM_CPU_NUM_OF_RESERVED_CPU", "0")),
 
+    # (CPU backend only) CPU core ids auto bound by OpenMP threads.
+    # OpenMP threads of a rank will auto bound to a NUMA node.
+    "VLLM_CPU_AUTO_OMP_THREAD_NUMA_BIND":
+    lambda: bool(int(os.getenv("VLLM_CPU_AUTO_OMP_THREAD_NUMA_BIND", "1"))),
+
     # (CPU backend only) whether to use prepack for MoE layer. This will be
     # passed to ipex.llm.modules.GatedMLPMOE. On unsupported CPUs, you might
     # need to set this to "0" (False).
