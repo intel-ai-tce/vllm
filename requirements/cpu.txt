@@ -27,3 +27,4 @@ intel_extension_for_pytorch==2.7.0; platform_machine == "x86_64"
 py-libnuma; platform_system != "Darwin"
 psutil; platform_system != "Darwin"
 py-libnuma # for auto omp thread numa bind
+psutil # for auto omp thread numa bind
