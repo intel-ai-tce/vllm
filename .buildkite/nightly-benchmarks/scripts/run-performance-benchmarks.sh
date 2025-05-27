@@ -329,7 +329,7 @@ run_serving_tests() {
     qps_list=$(echo "$qps_list" | jq -r '.[] | @sh')
     echo "Running over qps list $qps_list"
 
-    # check if there is enough resouces to run the test
+    # check if there is enough resources to run the test
     tp=$(echo "$server_params" | jq -r '.tensor_parallel_size')
     if [ "$ON_CPU" == "1" ];then
       if [[ $numa_count -lt $tp ]]; then
