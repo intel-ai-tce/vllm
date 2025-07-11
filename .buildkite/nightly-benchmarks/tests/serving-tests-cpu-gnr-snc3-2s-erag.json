@@ -162,6 +162,168 @@
         }
     },
     {
+        "test_name": "serving_llama8Bawq_pp6_sharegpt",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "backend": "vllm",
+            "dataset_name": "sharegpt",
+            "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
+	    "max_concurrency": 60,
+            "num_prompts": 200
+        }
+    },
+    {
+        "test_name": "serving_llama8Bawq_pp6_random_128_128",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 128,
+	    "random-output-len": 128,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 1000
+        }
+    },
+    {
+        "test_name": "serving_llama8Bawq_pp6_random_256_256",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 256,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_llama8Bawq_pp6_random_256_512",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 512,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_llama8Bawq_pp6_random_256_1024",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 1024,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
         "test_name": "serving_mistral7b_pp6_sharegpt",
         "qps_list": [1, 4, 16, "inf"],
         "server_environment_variables": {
@@ -324,6 +486,168 @@
         }
     },
     {
+        "test_name": "serving_mistral7bawq_pp6_sharegpt",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "sharegpt",
+            "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
+	    "max_concurrency": 60,
+            "num_prompts": 200
+        }
+    },
+    {
+        "test_name": "serving_mistral7bawq_pp6_random_128_128",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 128,
+	    "random-output-len": 128,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 1000
+        }
+    },
+    {
+        "test_name": "serving_mistral7bawq_pp6_random_256_256",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 256,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_mistral7bawq_pp6_random_256_512",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 512,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_mistral7bawq_pp6_random_256_1024",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 1024,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
         "test_name": "serving_qwen14b_pp6_sharegpt",
         "qps_list": [1, 4, 16, "inf"],
         "server_environment_variables": {
@@ -476,6 +800,168 @@
         },
         "client_parameters": {
             "model": "Qwen/Qwen3-14B",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 1024,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_qwen14bawq_pp6_sharegpt",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "backend": "vllm",
+            "dataset_name": "sharegpt",
+            "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
+	    "max_concurrency": 60,
+            "num_prompts": 200
+        }
+    },
+    {
+        "test_name": "serving_qwen14bawq_pp6_random_128_128",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 128,
+	    "random-output-len": 128,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 1000
+        }
+    },
+    {
+        "test_name": "serving_qwen14bawq_pp6_random_256_256",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 256,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_qwen14bawq_pp6_random_256_512",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 512,
+	    "ignore-eos": "",
+	    "max_concurrency": 128,
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_qwen14bawq_pp6_random_256_1024",
+        "qps_list": [1, 4, 16, "inf"],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
+            "pipeline_parallel_size": 6,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "Qwen/Qwen3-14B-AWQ",
             "backend": "vllm",
             "dataset_name": "random",
 	    "random-input-len": 256,
