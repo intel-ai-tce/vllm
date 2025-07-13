@@ -25,7 +25,6 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-	    "max_concurrency": 60,
             "num_prompts": 200
         }
     },
@@ -55,7 +54,6 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-	    "max_concurrency": 60,
             "num_prompts": 200
         }
     },
@@ -85,7 +83,6 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-	    "max_concurrency": 60,
             "num_prompts": 200
         }
     },
@@ -118,7 +115,6 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 1000
         }
     },
@@ -151,7 +147,6 @@
 	    "random-input-len": 1024,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 120
         }
     },
@@ -184,7 +179,6 @@
 	    "random-input-len": 2048,
 	    "random-output-len": 2048,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 110
         }
     },
@@ -217,7 +211,6 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 1000
         }
     },
@@ -250,7 +243,6 @@
 	    "random-input-len": 1024,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 120
         }
     },
@@ -283,7 +275,6 @@
 	    "random-input-len": 2048,
 	    "random-output-len": 2048,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 110
         }
     },
@@ -316,7 +307,6 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 1000
         }
     },
@@ -349,7 +339,6 @@
 	    "random-input-len": 1024,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 120
         }
     },
@@ -382,7 +371,6 @@
 	    "random-input-len": 2048,
 	    "random-output-len": 2048,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 110
         }
     }
