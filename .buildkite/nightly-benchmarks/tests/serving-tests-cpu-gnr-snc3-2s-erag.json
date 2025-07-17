@@ -1,7 +1,7 @@
 [
     {
         "test_name": "serving_llama8B_pp6_sharegpt",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -25,12 +25,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-            "num_prompts": 200
+	    "max_concurrency": 200,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8B_pp6_random_128_128",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -57,12 +58,13 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
+	    "max_concurrency": 1000,
             "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8B_pp6_random_256_256",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -89,12 +91,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 256,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8B_pp6_random_256_512",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -121,12 +124,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 512,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8B_pp6_random_256_1024",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -153,12 +157,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 1024,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8Bawq_pp6_sharegpt",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -182,12 +187,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-            "num_prompts": 200
+	    "max_concurrency": 200,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8Bawq_pp6_random_128_128",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -214,12 +220,13 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
+	    "max_concurrency": 1000,
             "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8Bawq_pp6_random_256_256",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -246,12 +253,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 256,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8Bawq_pp6_random_256_512",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -278,12 +286,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 512,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_llama8Bawq_pp6_random_256_1024",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -310,12 +319,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 1024,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7b_pp6_sharegpt",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -339,12 +349,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-            "num_prompts": 200
+	    "max_concurrency": 200,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7b_pp6_random_128_128",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -371,12 +382,13 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
+	    "max_concurrency": 1000,
             "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7b_pp6_random_256_256",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -403,12 +415,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 256,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7b_pp6_random_256_512",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -435,12 +448,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 512,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7b_pp6_random_256_1024",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -467,12 +481,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 1024,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7bawq_pp6_sharegpt",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -496,12 +511,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-            "num_prompts": 200
+	    "max_concurrency": 200,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7bawq_pp6_random_128_128",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -528,12 +544,13 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
+	    "max_concurrency": 1000,
             "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7bawq_pp6_random_256_256",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -560,12 +577,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 256,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7bawq_pp6_random_256_512",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -592,12 +610,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 512,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_mistral7bawq_pp6_random_256_1024",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -624,12 +643,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 1024,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14b_pp6_sharegpt",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -653,12 +673,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-            "num_prompts": 200
+	    "max_concurrency": 200,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14b_pp6_random_128_128",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -685,12 +706,13 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
+	    "max_concurrency": 1000,
             "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14b_pp6_random_256_256",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -717,12 +739,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 256,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14b_pp6_random_256_512",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -749,12 +772,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 512,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14b_pp6_random_256_1024",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -781,12 +805,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 1024,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14bawq_pp6_sharegpt",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -810,12 +835,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-            "num_prompts": 200
+	    "max_concurrency": 200,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14bawq_pp6_random_128_128",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -842,12 +868,13 @@
 	    "random-input-len": 128,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
+	    "max_concurrency": 1000,
             "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14bawq_pp6_random_256_256",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -874,12 +901,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 256,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14bawq_pp6_random_256_512",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -906,12 +934,13 @@
 	    "random-input-len": 256,
 	    "random-output-len": 512,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     },
     {
         "test_name": "serving_qwen14bawq_pp6_random_256_1024",
-        "qps_list": [1, 4, 16, "inf"],
+        "qps_list": ["inf"],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -938,7 +967,8 @@
 	    "random-input-len": 256,
 	    "random-output-len": 1024,
 	    "ignore-eos": "",
-            "num_prompts": 128
+	    "max_concurrency": 128,
+            "num_prompts": 1000
         }
     }
 ]
