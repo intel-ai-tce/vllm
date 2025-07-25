@@ -2,6 +2,7 @@
     {
         "test_name": "serving_llama8B_tp1_sharegpt",
         "qps_list": [1, 4, 16, "inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128, 200],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -25,13 +26,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-	    "max_concurrency": 60,
             "num_prompts": 200
         }
     },
     {
         "test_name": "serving_llama8B_tp2_sharegpt",
         "qps_list": [1, 4, 16, "inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128, 200],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -55,13 +56,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-	    "max_concurrency": 60,
             "num_prompts": 200
         }
     },
     {
         "test_name": "serving_llama8B_tp4_sharegpt",
         "qps_list": [1, 4, 16, "inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128, 200],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -85,13 +86,13 @@
             "backend": "vllm",
             "dataset_name": "sharegpt",
             "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
-	    "max_concurrency": 60,
             "num_prompts": 200
         }
     },
     {
         "test_name": "serving_llama8B_tp4_random_1024_128",
         "qps_list": [1, 4, 16, "inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128, 200],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -118,13 +119,13 @@
 	    "random-input-len": 1024,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 100
         }
     },
     {
         "test_name": "serving_llama8B_pp6_random_1024_128",
         "qps_list": [1, 4, 16, "inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128, 200],
         "server_environment_variables": {
             "VLLM_RPC_TIMEOUT": 100000,
 	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
@@ -151,7 +152,6 @@
 	    "random-input-len": 1024,
 	    "random-output-len": 128,
 	    "ignore-eos": "",
-	    "max_concurrency": 100,
             "num_prompts": 100
         }
     }
