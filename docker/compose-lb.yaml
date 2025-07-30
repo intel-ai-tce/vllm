@@ -1,0 +1,157 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+services:
+  vllm-service-1:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.9.1
+    container_name: vllm-service-1
+    ports:
+      - "8001:80"
+    volumes:
+      - "${MODEL_CACHE:-./data}:/root/.cache/huggingface/hub"
+    shm_size: 128g
+    cpuset: "0-31"
+    privileged: true
+    environment:
+      no_proxy: ${no_proxy}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      HF_TOKEN: ${HF_TOKEN}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
+      VLLM_CPU_SGL_KERNEL: 1
+      VLLM_CPU_KVCACHE_SPACE: 40
+    command: --model $LLM_MODEL_ID --host 0.0.0.0 --port 80 --dtype bfloat16 --distributed-executor-backend mp --block-size 128 --enforce-eager --tensor-parallel-size 1
+  vllm-service-2:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.9.1
+    container_name: vllm-service-2
+    ports:
+      - "8002:80"
+    volumes:
+      - "${MODEL_CACHE:-./data}:/root/.cache/huggingface/hub"
+    shm_size: 128g
+    cpuset: "32-63"
+    privileged: true
+    environment:
+      no_proxy: ${no_proxy}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      HF_TOKEN: ${HF_TOKEN}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
+      VLLM_CPU_SGL_KERNEL: 1
+      VLLM_CPU_KVCACHE_SPACE: 40
+    command: --model $LLM_MODEL_ID --host 0.0.0.0 --port 80 --dtype bfloat16 --distributed-executor-backend mp --block-size 128 --enforce-eager --tensor-parallel-size 1
+  vllm-service-3:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.9.1
+    container_name: vllm-service-3
+    ports:
+      - "8003:80"
+    volumes:
+      - "${MODEL_CACHE:-./data}:/root/.cache/huggingface/hub"
+    shm_size: 128g
+    cpuset: "64-95"
+    privileged: true
+    environment:
+      no_proxy: ${no_proxy}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      HF_TOKEN: ${HF_TOKEN}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
+      VLLM_CPU_SGL_KERNEL: 1
+      VLLM_CPU_KVCACHE_SPACE: 40
+    command: --model $LLM_MODEL_ID --host 0.0.0.0 --port 80 --dtype bfloat16 --distributed-executor-backend mp --block-size 128 --enforce-eager --tensor-parallel-size 1
+  vllm-service-4:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.9.1
+    container_name: vllm-service-4
+    ports:
+      - "8004:80"
+    volumes:
+      - "${MODEL_CACHE:-./data}:/root/.cache/huggingface/hub"
+    shm_size: 128g
+    cpuset: "96-127"
+    privileged: true
+    environment:
+      no_proxy: ${no_proxy}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      HF_TOKEN: ${HF_TOKEN}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
+      VLLM_CPU_SGL_KERNEL: 1
+      VLLM_CPU_KVCACHE_SPACE: 40
+    command: --model $LLM_MODEL_ID --host 0.0.0.0 --port 80 --dtype bfloat16 --distributed-executor-backend mp --block-size 128 --enforce-eager --tensor-parallel-size 1
+  vllm-service-5:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.9.1
+    container_name: vllm-service-5
+    ports:
+      - "8005:80"
+    volumes:
+      - "${MODEL_CACHE:-./data}:/root/.cache/huggingface/hub"
+    shm_size: 128g
+    cpuset: "128-159"
+    privileged: true
+    environment:
+      no_proxy: ${no_proxy}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      HF_TOKEN: ${HF_TOKEN}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
+      VLLM_CPU_SGL_KERNEL: 1
+      VLLM_CPU_KVCACHE_SPACE: 40
+    command: --model $LLM_MODEL_ID --host 0.0.0.0 --port 80 --dtype bfloat16 --distributed-executor-backend mp --block-size 128 --enforce-eager --tensor-parallel-size 1
+  vllm-service-6:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.9.1
+    container_name: vllm-service-6
+    ports:
+      - "8006:80"
+    volumes:
+      - "${MODEL_CACHE:-./data}:/root/.cache/huggingface/hub"
+    shm_size: 128g
+    cpuset: "160-191"
+    privileged: true
+    environment:
+      no_proxy: ${no_proxy}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      HF_TOKEN: ${HF_TOKEN}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
+      VLLM_CPU_SGL_KERNEL: 1
+      VLLM_CPU_KVCACHE_SPACE: 40
+    command: --model $LLM_MODEL_ID --host 0.0.0.0 --port 80 --dtype bfloat16 --distributed-executor-backend mp --block-size 128 --enforce-eager --tensor-parallel-size 1
+  vllm-ci-test:
+    image: public.ecr.aws/q9t5s3a7/vllm-ci-test-repo:a5dd03c1ebc5e4f56f3c9d3dc0436e9c582c978f-cpu
+    container_name: vllm-ci-test
+    volumes:
+      - "${MODEL_CACHE:-./data}:/root/.cache/huggingface/hub"
+      - "../benchmarks:/workspace/benchmarks"
+      - "../.buildkite:/workspace/.buildkite"
+    shm_size: 128g
+    environment:
+      no_proxy: ${no_proxy}
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      HF_TOKEN: ${HF_TOKEN}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
+      VLLM_CPU_KVCACHE_SPACE: 40
+      ON_CPU: 1
+      REMOTE_HOST: nginx-lb
+      REMOTE_PORT: 80
+    #command: --model $LLM_MODEL_ID --host 0.0.0.0 --port 80 --dtype bfloat16 --distributed-executor-backend mp --block-size 128 --enforce-eager --tensor-parallel-size 1
+    entrypoint: tail -f /dev/null
+    #command: /bin/bash
+  nginx-lb-server:
+    image: nginx-lb:${TAG:-latest}
+    container_name: nginx-lb
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - "./nginx_conf/:/etc/nginx/conf.d/"
+      - "./nginx_conf/nginx.conf:/etc/nginx/nginx.conf:ro"
+    environment:
+      - no_proxy=${no_proxy}
+      - https_proxy=${https_proxy}
+      - http_proxy=${http_proxy}
+    ipc: host
+    restart: always
+
+networks:
+  default:
+    driver: bridge
