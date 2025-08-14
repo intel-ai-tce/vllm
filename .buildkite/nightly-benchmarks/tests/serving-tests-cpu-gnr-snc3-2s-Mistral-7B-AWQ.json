@@ -1,0 +1,169 @@
+[
+    {
+        "test_name": "serving_mstral7bawq_pp1x4_sharegpt",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128, 200],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 2,
+            "tensor_parallel_size": 3,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "sharegpt",
+            "dataset_path": "./ShareGPT_V3_unfiltered_cleaned_split.json",
+            "num_prompts": 200
+        }
+    },
+    {
+        "test_name": "serving_mstral7bawq_pp1x4_random_128_128",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128, 1000],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 2,
+            "tensor_parallel_size": 3,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 128,
+	    "random-output-len": 128,
+	    "ignore-eos": "",
+            "num_prompts": 1000
+        }
+    },
+    {
+        "test_name": "serving_mstral7bawq_pp1x4_random_256_256",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 2,
+            "tensor_parallel_size": 3,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 256,
+	    "ignore-eos": "",
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_mstral7bawq_pp1x4_random_256_512",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 2,
+            "tensor_parallel_size": 3,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 512,
+	    "ignore-eos": "",
+            "num_prompts": 128
+        }
+    },
+    {
+        "test_name": "serving_mstral7bawq_pp1x4_random_256_1024",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [12, 16, 24, 32, 64, 128],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "pipeline_parallel_size": 2,
+            "tensor_parallel_size": 3,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+            "disable_log_requests": "",
+	    "enforce_eager": "",
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 256,
+	    "random-output-len": 1024,
+	    "ignore-eos": "",
+            "num_prompts": 128
+        }
+    }
+]
