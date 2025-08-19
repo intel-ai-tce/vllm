@@ -42,6 +42,7 @@ services:
       LLM_MODEL_ID: ${LLM_MODEL_ID}
       NUM_CARDS: ${NUM_CARDS}
       VLLM_TORCH_PROFILER_DIR: "/mnt"
+      VLLM_SKIP_WARMUP: "true"
       PYTHONWARNINGS: "ignore"
     runtime: habana
     cap_add:
