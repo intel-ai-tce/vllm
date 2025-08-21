@@ -1,0 +1,108 @@
+[
+    {
+        "test_name": "serving_qwen8b_pp1_random_30_250",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [1, 5, 12, 16, 24, 32, 64, 128, 200],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_SGL_KERNEL": 1,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "ond-ai/od-agent-1.4-Qwen3-8B-ckpt-2",
+            "pipeline_parallel_size": 1,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+	    "enforce_eager": "",
+	    "max_num_batched_tokens": 2048,
+	    "max_num_seqs": 256,
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "ond-ai/od-agent-1.4-Qwen3-8B-ckpt-2",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 30,
+	    "random-output-len": 250,
+	    "ignore-eos": "",
+            "num_prompts": 200
+        }
+    },
+    {
+        "test_name": "serving_qwen8b_pp3_random_30_250",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [1, 5, 12, 16, 24, 32, 64, 128, 200],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_SGL_KERNEL": 1,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "ond-ai/od-agent-1.4-Qwen3-8B-ckpt-2",
+            "pipeline_parallel_size": 3,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+	    "enforce_eager": "",
+	    "max_num_batched_tokens": 2048,
+	    "max_num_seqs": 256,
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "ond-ai/od-agent-1.4-Qwen3-8B-ckpt-2",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 30,
+	    "random-output-len": 250,
+	    "ignore-eos": "",
+            "num_prompts": 200
+        }
+    },
+    {
+        "test_name": "serving_qwen8b_tp2pp3_random_30_250",
+        "qps_list": ["inf"],
+        "max_concurrency_list": [1, 5, 12, 16, 24, 32, 64, 128, 200],
+        "server_environment_variables": {
+            "VLLM_RPC_TIMEOUT": 100000,
+	    "VLLM_ALLOW_LONG_MAX_MODEL_LEN": 1,
+	    "VLLM_ENGINE_ITERATION_TIMEOUT_S": 120,
+	    "VLLM_CPU_SGL_KERNEL": 1,
+	    "VLLM_CPU_KVCACHE_SPACE": 40
+        },
+        "server_parameters": {
+            "model": "ond-ai/od-agent-1.4-Qwen3-8B-ckpt-2",
+            "tensor_parallel_size": 2,
+            "pipeline_parallel_size": 3,
+	    "dtype": "bfloat16",
+	    "distributed_executor_backend": "mp",
+	    "block_size": 128,
+	    "trust_remote_code": "",
+	    "enable_chunked_prefill": "",
+            "disable_log_stats": "",
+	    "enforce_eager": "",
+	    "max_num_batched_tokens": 2048,
+	    "max_num_seqs": 256,
+            "load_format": "dummy"
+        },
+        "client_parameters": {
+            "model": "ond-ai/od-agent-1.4-Qwen3-8B-ckpt-2",
+            "backend": "vllm",
+            "dataset_name": "random",
+	    "random-input-len": 30,
+	    "random-output-len": 250,
+	    "ignore-eos": "",
+            "num_prompts": 200
+        }
+    }
+]
