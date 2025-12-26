@@ -7,8 +7,8 @@ services:
       #- /mnt/hf_cache:/mnt/hf_cache
       #- "${VLLM_FOLDER_PATH:-./vllm}/.buildkite:/workspace/.buildkite"
       #- "${VLLM_FOLDER_PATH:-./vllm}/benchmarks:/workspace/benchmarks"
-      - "./tests/serving-tests.json:/workspace/.buildkite/performance-benchmarks/tests/serving-tests.json:ro"
-      - "./results:/workspace/benchmarks/results"
+      - "./tests/serving-tests.json:/vllm-workspace/.buildkite/performance-benchmarks/tests/serving-tests.json:ro"
+      - "./results:/vllm-workspace/benchmarks/results"
     shm_size: 128g
     # Equivalent to: --gpus all
     deploy:
@@ -27,5 +27,5 @@ services:
       http_proxy: ${http_proxy}
       https_proxy: ${https_proxy}
       HF_TOKEN: ${HF_TOKEN}
-    entrypoint: ["bash", "/workspace/.buildkite/performance-benchmarks/scripts/run-performance-benchmarks.sh"]
+    entrypoint: ["bash", "/vllm-workspace/.buildkite/performance-benchmarks/scripts/run-performance-benchmarks.sh"]
 
