@@ -6,7 +6,7 @@ export MODEL="meta-llama/Llama-3.1-405B-Instruct"
 #export MODEL="meta-llama/Llama-3.1-8B-Instruct"
 #export MODEL="Qwen/Qwen2.5-14B-Instruct"
 #export NUM_PROMPTS=64
-export CONCURRENT_REQ=64
+#export CONCURRENT_REQ=64
 #DOCKER_IMAGE="vllm-gaudi-cd:latest"
 #"vault.habana.ai/gaudi-docker/1.22.0/ubuntu22.04/habanalabs/vllm-installer-2.7.1:latest"
 
@@ -38,7 +38,7 @@ for pair in "${TOK_PAIRS[@]}"; do
       --output ./docker-compose.override.yml
 
     echo "--- Launching benchmark (NUMCPU=$NUMCPU) ---"
-    DOCKER_IMAGE="$DOCKER_IMAGE" docker compose up \
+    docker compose up \
       --abort-on-container-exit
 
     LOG_SRC="logs/perftest_inp${INPUT_TOK}_out${OUTPUT_TOK}.log"
