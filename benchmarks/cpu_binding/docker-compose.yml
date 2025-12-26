@@ -27,5 +27,5 @@ services:
       http_proxy: ${http_proxy}
       https_proxy: ${https_proxy}
       HF_TOKEN: ${HF_TOKEN}
-    entrypoint: ["bash", "/workspace/.buildkite/nightly-benchmarks/scripts/run-performance-benchmarks.sh"]
+    entrypoint: ["bash", "/workspace/.buildkite/performance-benchmarks/scripts/run-performance-benchmarks.sh"]
 
