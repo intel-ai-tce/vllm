@@ -1,5 +1,5 @@
 services:
-  vllm-ci-test:
+  vllm-server:
     image: public.ecr.aws/q9t5s3a7/vllm-ci-test-repo:latest
     container_name: vllm-ci-test-gpu
     volumes:
