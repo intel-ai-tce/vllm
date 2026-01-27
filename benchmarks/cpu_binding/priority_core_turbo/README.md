@@ -1,4 +1,4 @@
-# Enabling Priority Core Turbo (PCT) to improve vLLM Performance on GPUs
+# Enabling Priority Core Turbo (PCT) to improve vLLM Performance for GPUs
 
 PCT allows for dynamic prioritization of high-priority cores, enabling them to run at higher turbo frequencies. 
 In parallel, lower-priority cores operate at base frequency, ensuring optimal distribution of CPU resources. 
