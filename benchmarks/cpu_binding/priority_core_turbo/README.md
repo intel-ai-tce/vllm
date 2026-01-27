@@ -12,7 +12,7 @@ The Xeon processors currently validated for this setup are: Intel Xeon 6960P and
     ```bash
     docker compose build --no-cache
     ```
-2. Check wether PCT is enabled or not and get the CPU ids list with PCT.
+2. Check wether PCT is enabled or not and get the CLOS0 CPU ids list with PCT.
 
     ```bash
     docker compose --profile check up --abort-on-container-exit
