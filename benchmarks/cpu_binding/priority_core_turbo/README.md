@@ -54,7 +54,7 @@ The Xeon processors currently validated for this setup are: Intel Xeon 6960P and
     ```
 
 
-3. Set CPU ids based on power domain to use PCT feature if CPU ids list hasn't set.
+3. Set CPU ids based on power domain to use PCT feature if CLOS0 CPU ids list hasn't set.
 
     ```bash
    docker compose --profile set up --abort-on-container-exit
