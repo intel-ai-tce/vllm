@@ -17,6 +17,42 @@ The Xeon processors currently validated for this setup are: Intel Xeon 6960P and
     ```bash
     docker compose --profile check up --abort-on-container-exit
     ```
+    Example results when PCT is enabled successfully.
+    ```bash
+    ------------------------------------------------------------
+    CPU and Intel Speed Select Capability
+    ------------------------------------------------------------
+    Intel(R) SST-PP (feature perf-profile) is supported
+    Intel(R) SST-TF (feature turbo-freq) is supported
+    Intel(R) SST-BF (feature base-freq) is not supported
+    Intel(R) SST-CP (feature core-power) is supported
+    Intel(R) Speed Select Technology
+    Executing on CPU model:173[0xad]
+    
+    ------------------------------------------------------------
+    PCT (Turbo-Frequency) Feature Status
+    ------------------------------------------------------------
+    ✅ PCT (Turbo-Frequency) data present.
+    
+    ------------------------------------------------------------
+    Core Power (CLOS) Feature Status
+    ------------------------------------------------------------
+    ✅ Core Power feature ENABLED
+    ✅ CLOS ENABLED
+    
+    ------------------------------------------------------------
+    CPU list for TARGET_CLOS=0
+    ------------------------------------------------------------
+    clos:0 CPU list: 0-7,32-39,64-71,96-103,128-135,160-167,192-199,224-231
+    
+    ------------------------------------------------------------
+    Summary
+    ------------------------------------------------------------
+    ✅ PCT turbo tables detected (turbo-freq reports high-priority data)
+    ✅ Core Power enabled
+    ✅ CLOS enabled
+    ```
+
 
 3. Set CPU ids based on power domain to use PCT feature if CPU ids list hasn't set.
 
