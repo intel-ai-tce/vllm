@@ -59,6 +59,55 @@ The Xeon processors currently validated for this setup are: Intel Xeon 6960P and
     ```bash
    docker compose --profile set up --abort-on-container-exit
     ```
+
+    Example results when PCT is set successfully based on power-domains.
+    ```bash
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | Config
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | HP_PER_DOMAIN=8 (HP_BUCKET=0)
+    intel-speed-select-set-1  | INCLUDE_HT=0
+    intel-speed-select-set-1  | HP_CLOS=0  OTHER_CLOS=2
+    intel-speed-select-set-1  | DEBUG_MODE=0  DRY_RUN=0  DEBUG_VERBOSE=0  DEBUG_MAP=0
+    intel-speed-select-set-1  | 
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | HP selection per NUMA node (initial pick)
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | node 0 -> 0 1 2 3 4 5 6 7
+    intel-speed-select-set-1  | node 1 -> 32 33 34 35 36 37 38 39
+    intel-speed-select-set-1  | node 2 -> 64 65 66 67 68 69 70 71
+    intel-speed-select-set-1  | node 3 -> 96 97 98 99 100 101 102 103
+    intel-speed-select-set-1  | 
+    intel-speed-select-set-1  | HP initial ranges      : 0-7,32-39,64-71,96-103
+    intel-speed-select-set-1  | HP effective (with HT) : 0-7,32-39,64-71,96-103,128-135,160-167,192-199,224-231
+    intel-speed-select-set-1  | 
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | Computed CPU lists
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | HP (effective) : 0-7,32-39,64-71,96-103,128-135,160-167,192-199,224-231
+    intel-speed-select-set-1  | Non-HP         : 8-31,40-63,72-95,104-127,136-159,168-191,200-223,232-255
+    intel-speed-select-set-1  | 
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | Apply CLOS assignments (quiet)
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | Setting HP -> CLOS0, Non-HP -> CLOS2
+    intel-speed-select-set-1  | Applied.
+    intel-speed-select-set-1  | 
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | Verification (concise CPU->CLOS)
+    intel-speed-select-set-1  | ------------------------------------------------------------
+    intel-speed-select-set-1  | HP list should be clos:0
+    intel-speed-select-set-1  | cpu-0 clos:0
+    intel-speed-select-set-1  | … (showing first 40 lines)
+    intel-speed-select-set-1  | 
+    intel-speed-select-set-1  | Non-HP list should be clos:2
+    intel-speed-select-set-1  | cpu-8 clos:2
+    intel-speed-select-set-1  | … (showing first 40 lines)
+    intel-speed-select-set-1  | 
+    intel-speed-select-set-1  | Done.
+    intel-speed-select-set-1 exited with code 0
+    ```
+    
 4. (Optional) Debug with intel-speed-select tool directly
 
     ```bash
