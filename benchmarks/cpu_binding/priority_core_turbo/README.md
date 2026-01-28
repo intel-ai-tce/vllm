@@ -11,8 +11,6 @@ Running these threads on **High-Priority (HP) cores** improves GPU utilization, 
 
 Validated platforms:
 - **Intel® Xeon® 6960P**
-- **Intel® Xeon® Platinum 8568Y+**
-
 
 ## How PCT Works 
 
