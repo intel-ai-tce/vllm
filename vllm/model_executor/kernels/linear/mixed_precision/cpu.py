@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import torch
+from vllm.utils.cpu_isa import is_amx_tile_supported
 
 from vllm import _custom_ops as ops
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
@@ -119,7 +120,7 @@ class CPUWNA16LinearKernel(MPLinearKernel):
 
 
 def _get_isa_hint(dtype: torch.dtype) -> str:
-    supports_amx = torch._C._cpu._is_amx_tile_supported()
+    supports_amx = is_amx_tile_supported()
     if supports_amx and dtype in (torch.bfloat16,):
         return "amx"
     else:

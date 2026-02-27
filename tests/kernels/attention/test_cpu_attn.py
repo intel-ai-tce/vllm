@@ -3,6 +3,7 @@
 
 import functools
 import math
+from vllm.utils.cpu_isa import is_amx_tile_supported
 
 import pytest
 import torch
@@ -48,7 +49,7 @@ def get_attn_isa(
     else:
         if current_platform.get_cpu_architecture() == CpuArchEnum.ARM:
             return "neon"
-        elif torch._C._cpu._is_amx_tile_supported():
+        elif is_amx_tile_supported():
             return "amx"
         else:
             return "vec"
@@ -401,7 +402,7 @@ def test_varlen_with_paged_kv_normal_vec(
 @pytest.mark.parametrize("use_sink", [False])
 @pytest.mark.parametrize("isa", ["amx"])
 @pytest.mark.skipif(
-    not torch._C._cpu._is_amx_tile_supported(), reason="no AMX support."
+    not is_amx_tile_supported(), reason="no AMX support."
 )
 def test_varlen_with_paged_kv_normal_amx(
     seq_lens: list[tuple[int, int]],

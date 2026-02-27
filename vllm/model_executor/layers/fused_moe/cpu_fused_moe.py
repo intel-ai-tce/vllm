@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import weakref
 from collections.abc import Callable
+from vllm.utils.cpu_isa import is_amx_tile_supported
 
 import torch
 from torch.nn import functional as F
@@ -280,7 +281,7 @@ class CPUFusedMOE:
         if not (w13_output_size % 32 == 0 and w2_output_size % 32 == 0):
             return False, "none"
 
-        supports_amx = torch._C._cpu._is_amx_tile_supported()
+        supports_amx = is_amx_tile_supported()
 
         if (
             supports_amx

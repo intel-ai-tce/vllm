@@ -78,6 +78,7 @@ def apply_penalties(
     repetition_penalties: torch.Tensor,
 ) -> torch.Tensor:
     """
+from vllm.utils.cpu_isa import is_amx_tile_supported
     Applies penalties in place to the logits tensor
     logits : The input logits tensor of shape [num_seqs, vocab_size]
     prompt_tokens_tensor: A tensor containing the prompt tokens. The prompts
@@ -232,7 +233,7 @@ direct_register_custom_op(
 
 def check_cpu_sgl_kernel(n: int, k: int, dtype: torch.dtype) -> bool:
     return (
-        torch._C._cpu._is_amx_tile_supported()
+        is_amx_tile_supported()
         and (dtype in (torch.bfloat16, torch.int8))
         and k % 32 == 0
         and n % 16 == 0

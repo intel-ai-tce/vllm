@@ -3,6 +3,7 @@
 
 import functools
 import time
+from vllm.utils.cpu_isa import is_amx_tile_supported
 
 import numpy as np
 import torch
@@ -27,7 +28,7 @@ def get_attn_isa(
     else:
         if current_platform.get_cpu_architecture() == CpuArchEnum.ARM:
             return "neon"
-        elif torch._C._cpu._is_amx_tile_supported():
+        elif is_amx_tile_supported():
             return "amx"
         else:
             return "vec"

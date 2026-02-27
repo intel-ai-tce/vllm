@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from vllm.utils.cpu_isa import is_amx_tile_supported
 
 from tests.kernels.allclose_default import get_default_atol, get_default_rtol
 from vllm._custom_ops import cpu_fused_moe, cpu_prepack_moe_weight
@@ -22,7 +23,7 @@ INTERMEDIATE_DIM = [128, 2880]
 BATCH_SIZE = [1, 64, 256]
 ACT = [MoEActivation.SILU, MoEActivation.SWIGLUOAI]
 USE_BIAS = [True, False]
-ISA = ["amx", "vec"] if torch._C._cpu._is_amx_tile_supported() else ["vec"]
+ISA = ["amx", "vec"] if is_amx_tile_supported() else ["vec"]
 DTYPE = [torch.bfloat16]
 
 

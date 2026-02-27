@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from typing import Any
+from vllm.utils.cpu_isa import is_amx_tile_supported
 
 import torch
 from safetensors.torch import _TYPES as _SAFETENSORS_TO_TORCH_DTYPE
@@ -292,7 +293,7 @@ class CPUAWQLinearMethod(LinearMethodBase):
 
 
 def _get_isa_hint(dtype: torch.dtype) -> str:
-    supports_amx = torch._C._cpu._is_amx_tile_supported()
+    supports_amx = is_amx_tile_supported()
     if supports_amx and dtype in (torch.bfloat16,):
         return "amx"
     else:
