@@ -1,50 +1,33 @@
+All-in-one Monitoring Stack
 
-Full Monitoring Stack (CPU + GPU + vLLM)
+This package is preconfigured so you only need:
 
-This stack launches everything with:
+  docker compose up -d
 
-    docker compose up -d
+What starts:
+- Prometheus
+- Grafana
+- node-exporter
+- dcgm-exporter
 
-Services included
------------------
-Prometheus      : metrics collection
-Grafana         : dashboards
-Node Exporter   : CPU / memory / disk metrics
-DCGM Exporter   : NVIDIA GPU metrics
+Assumptions:
+- You run this on the same machine that has the GPU.
+- vLLM GPU metrics are exposed on http://localhost:8000/metrics
+- vLLM CPU metrics are exposed on http://localhost:8001/metrics
 
-URLs
-----
-Grafana:
-http://localhost:3000
-login: admin / admin
+Open:
+- Grafana:   http://localhost:3000
+- Prometheus: http://localhost:9090
 
-Prometheus:
-http://localhost:9090
+Grafana login:
+- user: admin
+- pass: admin
 
-Metrics endpoints
------------------
-Node exporter:
-http://localhost:9100/metrics
+Preloaded dashboard:
+- CPU + GPU + vLLM Overview
 
-GPU exporter:
-http://localhost:9400/metrics
-
-vLLM metrics:
-http://localhost:8000/metrics
-http://localhost:8001/metrics
-
-Example Grafana Queries
------------------------
-
-CPU usage:
-100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100)
-
-GPU utilization:
-DCGM_FI_DEV_GPU_UTIL
-
-GPU memory usage:
-DCGM_FI_DEV_FB_USED
-
-Start stack
------------
-docker compose up -d
+Notes:
+- node-exporter provides CPU / memory / disk / network metrics.
+- dcgm-exporter provides NVIDIA GPU metrics.
+- If your vLLM ports differ from 8000 / 8001, edit prometheus/prometheus.yml.
+- dcgm-exporter requires NVIDIA Docker runtime support on the host.
