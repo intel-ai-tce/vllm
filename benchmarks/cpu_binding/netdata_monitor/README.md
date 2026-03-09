@@ -1,6 +1,12 @@
 Netdata Quick Monitoring (CPU + GPU)
 
-This is the fastest way to see system utilization in a web browser.
+This version enables GPU monitoring inside the container.
+
+Requirements
+------------
+1. NVIDIA drivers installed
+2. nvidia-container-toolkit installed
+3. `docker run --gpus all nvidia/cuda:12.2.0-base nvidia-smi` works
 
 Start monitoring:
 
@@ -15,18 +21,12 @@ Netdata automatically detects:
 - Memory usage
 - Disk IO
 - Network traffic
-- NVIDIA GPU utilization (if nvidia-smi is available)
+- NVIDIA GPU utilization
 
-GPU monitoring works if:
-- NVIDIA drivers are installed
-- nvidia-smi works on the host
+GPU panels appear under:
 
-Example GPU metrics shown in UI:
-- GPU utilization
-- GPU memory
-- GPU temperature
-- GPU power
+Metrics -> Hardware -> GPU
 
-Stop stack:
+If GPU does not appear, test inside container:
 
-    docker compose down
+    docker exec -it netdata nvidia-smi

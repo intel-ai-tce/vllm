@@ -7,6 +7,10 @@ services:
     restart: unless-stopped
     ports:
       - "19999:19999"
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - DO_NOT_TRACK=1
     cap_add:
       - SYS_PTRACE
     security_opt:
@@ -20,8 +24,7 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /etc/os-release:/host/etc/os-release:ro
-    environment:
-      - DO_NOT_TRACK=1
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 volumes:
   netdataconfig:
