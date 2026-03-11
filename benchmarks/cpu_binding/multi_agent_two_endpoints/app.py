@@ -4,10 +4,14 @@ from typing import AsyncGenerator, Dict, Any
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from agents import run_researcher, run_writer, run_reviewer, PipelineConfig
 
 app = FastAPI()
+
+# Serve static files (logos)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 def sse(event: str, data: Dict[str, Any]) -> str:
@@ -69,6 +73,20 @@ INDEX_HTML = '''
       .logline.writer { border-left-color:#3b82f6; }
       .logline.reviewer { border-left-color:#22c55e; }
       .logline.status { border-left-color:#a855f7; }
+
+      /* Logo styles */
+      .logo-container {
+        position: fixed;
+        bottom: 16px;
+        right: 20px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        opacity: 0.9;
+      }
+      .logo-container img {
+        height: 30px;
+      }
     </style>
   </head>
   <body>
@@ -99,6 +117,12 @@ INDEX_HTML = '''
     </div>
 
     <div id="log"></div>
+
+    <!-- Logos -->
+    <div class="logo-container">
+      <img src="/static/intel_logo.png">
+      <img src="/static/supermicro_logo.png">
+    </div>
 
     <script>
       let es = null;
