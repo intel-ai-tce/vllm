@@ -10,8 +10,14 @@
 
 services:
   vllm-cpu-server:
-    image: public.ecr.aws/q9t5s3a7/vllm-ci-test-repo:b8b302cde434df8c9289a2b465406b47ebab1c2d-cpu
+    #image: public.ecr.aws/q9t5s3a7/vllm-ci-test-repo:b8b302cde434df8c9289a2b465406b47ebab1c2d-cpu
+    # use 0.15.1 since only it is available
+    #image: public.ecr.aws/q9t5s3a7/vllm-ci-test-repo:1892993bc18e243e2c05841314c5e9c06a80c70d-cpu
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.17.0
     container_name: vllm-cpu-server
+    depends_on:
+      vllm-server:
+        condition: service_healthy
 
     profiles:
       - deploy
@@ -21,8 +27,11 @@ services:
 
     volumes:
       - /mnt/hf_cache:/mnt/hf_cache
-      - "./tests/serving-tests-cpu.json:/workspace/.buildkite/nightly-benchmarks/tests/serving-tests-cpu.json:ro"
-      - "./results-cpu:/workspace/benchmarks/results"
+      - "../../benchmarks:/vllm-workspace/benchmarks"
+      - "../../.buildkite:/vllm-workspace/.buildkite"
+        #- "./tests/run-performance-benchmarks.sh:/vllm-workspace/.buildkite/performance-benchmarks/scripts/run-performance-benchmarks.sh"
+      - "./tests/serving-tests-cpu-stress.json:/vllm-workspace/.buildkite/performance-benchmarks/tests/serving-tests-cpu.json:ro"
+      - "./results-cpu:/vllm-workspace/benchmarks/results"
 
     environment:
       no_proxy: ${no_proxy}
@@ -96,7 +105,7 @@ services:
         fi
 
         echo "[vllm-cpu-server] BENCHMARK: running benchmark script (server is managed by the script)"
-        exec bash /workspace/.buildkite/nightly-benchmarks/scripts/run-performance-benchmarks.sh
+        exec bash /vllm-workspace/.buildkite/performance-benchmarks/scripts/run-performance-benchmarks.sh
 
     ports:
       - "${CPU_PORT:-8001}:${CPU_PORT:-8001}"
