@@ -25,6 +25,13 @@ async def vllm_stream_chat(
 
     async with httpx.AsyncClient(timeout=timeout_s, headers=headers) as client:
         async with client.stream("POST", url, json=payload) as resp:
+            body = await resp.aread()
+            print("DEBUG url =", url)
+            print("DEBUG status =", resp.status_code)
+            print("DEBUG request headers auth present =", "Authorization" in (headers or {}))
+            print("DEBUG request headers content-type =", (headers or {}).get("Content-Type"))
+            print("DEBUG payload =", payload)
+            print("DEBUG response body =", body[:1000])
             resp.raise_for_status()
             async for line in resp.aiter_lines():
                 if not line or not line.startswith("data: "):

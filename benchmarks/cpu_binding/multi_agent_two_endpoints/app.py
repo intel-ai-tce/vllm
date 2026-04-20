@@ -98,7 +98,7 @@ INDEX_HTML = '''
       <button id="run">Run</button>
       <button id="stop">Stop</button>
       <span id="mode" class="pill">mode: ...</span>
-      <span id="routing" class="pill">routing: researcher/reviewer→CPU, writer→GPU</span>
+      <span id="routing" class="pill">routing: researcher/reviewer→CPU, writer→SN40</span>
     </div>
 
     <div class="row">
@@ -107,7 +107,7 @@ INDEX_HTML = '''
         <textarea id="research" readonly></textarea>
       </div>
       <div class="panel writer">
-        <h3>Writer (GPU 405B)</h3>
+        <h3>Writer (SN40 70B)</h3>
         <textarea id="writer" readonly></textarea>
       </div>
       <div class="panel reviewer">
@@ -121,7 +121,6 @@ INDEX_HTML = '''
     <!-- Logos -->
     <div class="logo-container">
       <img src="/static/intel_logo.png">
-      <img src="/static/supermicro_logo.png">
     </div>
 
     <script>

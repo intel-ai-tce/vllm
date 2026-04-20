@@ -12,9 +12,11 @@ class PipelineConfig:
 
     cpu_url: str
     cpu_model: str
+    cpu_api_key: str
 
     gpu_url: str
     gpu_model: str
+    gpu_api_key: str
 
     researcher_max_tokens: int
     researcher_temp: float
@@ -28,7 +30,7 @@ class PipelineConfig:
     reviewer_temp: float
     review_start_chars: int
 
-    api_key: str
+    #api_key: str
     chunk_chars: int
 
     @staticmethod
@@ -53,8 +55,10 @@ class PipelineConfig:
             dry_run=dry_run,
             cpu_url=os.getenv("CPU_URL", "http://localhost:8001"),
             cpu_model=os.getenv("CPU_MODEL", "meta-llama/Llama-3.1-8B-Instruct"),
+            cpu_api_key=os.getenv("CPU_API_KEY", ""),
             gpu_url=os.getenv("GPU_URL", "http://localhost:8002"),
             gpu_model=os.getenv("GPU_MODEL", "meta-llama/Llama-3.1-405B-Instruct"),
+            gpu_api_key=os.getenv("GPU_API_KEY", ""),
             researcher_max_tokens=env_int("RESEARCHER_MAX_TOKENS", 700),
             researcher_temp=env_float("RESEARCHER_TEMP", 0.2),
             researcher_initial_wait_s=env_float("RESEARCHER_INITIAL_WAIT_S", 0.8),
@@ -64,14 +68,14 @@ class PipelineConfig:
             reviewer_max_tokens=env_int("REVIEWER_MAX_TOKENS", 400),
             reviewer_temp=env_float("REVIEWER_TEMP", 0.2),
             review_start_chars=env_int("REVIEW_START_CHARS", 1400),
-            api_key=os.getenv("OPENAI_API_KEY", ""),
+            #api_key=os.getenv("OPENAI_API_KEY", ""),
             chunk_chars=env_int("CHUNK_CHARS", 220),
         )
 
 
-def _headers(cfg: PipelineConfig) -> dict:
-    if cfg.api_key:
-        return {"Authorization": f"Bearer {cfg.api_key}"}
+def _headers(api_key: str) -> dict:
+    if api_key:
+        return {"Authorization": f"Bearer {api_key}"}
     return {}
 
 
@@ -117,7 +121,7 @@ async def run_researcher(task: str, cfg: PipelineConfig) -> AsyncGenerator[str, 
         max_tokens=cfg.researcher_max_tokens,
         temperature=cfg.researcher_temp,
         timeout_s=180,
-        headers=_headers(cfg),
+        headers=_headers(cfg.cpu_api_key),
     ):
         buf += delta
         if len(buf) >= cfg.chunk_chars:
@@ -189,7 +193,7 @@ async def run_writer(task: str, research_in_q: asyncio.Queue, cfg: PipelineConfi
             max_tokens=cfg.writer_max_tokens,
             temperature=cfg.writer_temp,
             timeout_s=cfg.writer_timeout_s,
-            headers=_headers(cfg),
+            headers=_headers(cfg.gpu_api_key),
         ):
             buf += delta
             if len(buf) >= cfg.chunk_chars:
@@ -259,7 +263,7 @@ async def run_reviewer(task: str, writer_in_q: asyncio.Queue, cfg: PipelineConfi
         max_tokens=cfg.reviewer_max_tokens,
         temperature=cfg.reviewer_temp,
         timeout_s=180,
-        headers=_headers(cfg),
+        headers=_headers(cfg.cpu_api_key),
     ):
         buf += delta
         if len(buf) >= cfg.chunk_chars:

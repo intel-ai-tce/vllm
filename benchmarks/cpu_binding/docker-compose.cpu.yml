@@ -15,9 +15,9 @@ services:
     #image: public.ecr.aws/q9t5s3a7/vllm-ci-test-repo:1892993bc18e243e2c05841314c5e9c06a80c70d-cpu
     image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:v0.17.0
     container_name: vllm-cpu-server
-    depends_on:
-      vllm-server:
-        condition: service_healthy
+      #    depends_on:
+      #vllm-server:
+      #  condition: service_healthy
 
     profiles:
       - deploy
