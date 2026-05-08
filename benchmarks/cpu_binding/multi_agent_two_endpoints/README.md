@@ -211,7 +211,7 @@ http://localhost:8000
 # OpenShift Demo
 
 ## Setup CPU and GPU endpoints using CPU operator (Optional)
-Only needed for the first time setup. Users could bypass this step if endpoints are ready.
+Only needed for the first time setup. Users could bypass this step if endpoints are ready.  
 https://github.com/intel-ai-tce/cpu-operator
 
 ## Test and Get the endpoints URL
