@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # -----------------------------------------------------------------------------
 # Multi-agent app using 2 physical endpoints:
@@ -41,3 +41,5 @@ echo "  RESEARCHER_MAX_TOKENS=$RESEARCHER_MAX_TOKENS"
 echo "  WRITER_MAX_TOKENS=$WRITER_MAX_TOKENS"
 echo "  REVIEWER_MAX_TOKENS=$REVIEWER_MAX_TOKENS"
 echo "  REVIEW_START_CHARS=$REVIEW_START_CHARS"
+export WRITER_MAX_TOKENS=1200
+uvicorn app:app --host 0.0.0.0 --port 8000
