@@ -179,13 +179,13 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 First start the two model endpoints.
 
-### CPU 8B endpoint
+## CPU 8B endpoint
 
 ```bash
 VLLM_CPU_KVCACHE_SPACE=8 vllm serve meta-llama/Llama-3.1-8B-Instruct   --host 0.0.0.0 --port 8001   --dtype bfloat16   --max-model-len 8192
 ```
 
-### GPU 405B endpoint
+## GPU 405B endpoint
 
 ```bash
 vllm serve meta-llama/Llama-3.1-405B-Instruct   --host 0.0.0.0 --port 8002   --dtype bfloat16   --max-model-len 8192
@@ -208,3 +208,19 @@ Open:
 ```
 http://localhost:8000
 ```
+# OpenShift Demo
+
+## Setup CPU and GPU endpoints using CPU operator (Optional)
+Only needed for the first time setup. Users could bypass this step if endpoints are ready.
+https://github.com/intel-ai-tce/cpu-operator
+
+## Test and Get the endpoints URL
+```bash
+source ./TestRoute.sh
+```
+## Run Demo UI
+```bash
+source ./env_set.sh
+```
+
+
