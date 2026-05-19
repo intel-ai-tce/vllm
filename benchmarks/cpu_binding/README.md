@@ -69,6 +69,7 @@ Install required dependencies:
 
 ```bash
 pip install -r requirements_cpu_binding.txt
+pip install regex
 ```
 
 ---
