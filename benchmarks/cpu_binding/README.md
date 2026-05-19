@@ -78,7 +78,7 @@ pip install -r requirements_cpu_binding.txt
 Generate the CPU binding configuration:
 
 ```bash
-export MODEL="meta-llama/Llama-3.1-405B-Instruct"
+export MODEL="Qwen/Qwen2.5-32B-Instruct"
 export HF_TOKEN="<your huggingface token>"
 
 python3 generate_cpu_binding_from_csv.py   --settings cpu_binding_gnr.csv   --output docker-compose.override.yml
@@ -96,7 +96,7 @@ All **deploy** and **benchmark** runs should include this override file.
 Runs a persistent OpenAI‑compatible vLLM server.
 
 ```bash
-MODE=deploy MODEL="meta-llama/Llama-3.1-405B-Instruct" PORT=8000 docker compose   -f docker-compose.yml   -f docker-compose.override.yml   --profile deploy up
+MODE=deploy MODEL="Qwen/Qwen2.5-32B-Instruct" PORT=8000 docker compose   -f docker-compose.yml   -f docker-compose.override.yml   --profile deploy up
 ```
 
 Test:
