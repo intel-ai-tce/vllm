@@ -14,31 +14,130 @@ The validated platform for this workflow:
 
 - **Intel Xeon 6776P (Xeon 6 platform)**
 
+### Tested Azure VM
+
+This workflow was validated on an Azure **NC RTX PRO 6000 Blackwell Server Edition v6-sizes series** VM (Preview as of May 20th, 2026).
+
+Verify the GPU is exposed to the VM:
+
+```bash
+lspci | grep -i NVIDIA
+```
+
+`lspci` lists the PCIe devices on the VM, including the InfiniBand NIC and GPUs, if any. If `lspci` doesn't return successfully, you may need to install LIS on CentOS/RHEL.
+
+Then run installation commands specific to your distribution.
+
+## Install CUDA drivers on N-series VMs
+
+Reference this guide: [Install GRID drivers on NCv6 RTX PRO 6000 BSE VMs](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup#install-grid-drivers-on-ncv6-rtx-pro-6000-bse-vms).
+
+### Disable Secure Boot and vTPM
+
+Ensure Secure Boot and vTPM are disabled — done via the Azure Portal:
+
+1. Stop the VM.
+2. Go to **Configuration** → **Security type**.
+3. Change from **Trusted Launch** to **Standard**.
+4. Under the security settings, **uncheck / disable Secure Boot** (and vTPM if present).
+5. Save and restart.
+
+Verify from the terminal:
+
+```bash
+mokutil --sb-state
+```
+
+Should return `SecureBoot disabled`.
+
+#### Ubuntu
+
+Ubuntu packages NVIDIA proprietary drivers. Those drivers come directly from NVIDIA and are simply packaged by Ubuntu so that they can be automatically managed by the system. Downloading and installing drivers from another source can lead to a broken system. Moreover, installing third-party drivers requires extra steps on VMs with TrustedLaunch and Secure Boot enabled. They require the user to add a new Machine Owner Key for the system to boot. Drivers from Ubuntu are signed by Canonical and will work with Secure Boot.
+
+Install the `ubuntu-drivers` utility:
+
+```bash
+sudo apt update && sudo apt install -y ubuntu-drivers-common
+```
+
+Install the latest NVIDIA drivers:
+
+```bash
+sudo ubuntu-drivers install
+```
+
+Reboot the VM after the GPU driver is installed:
+
+```bash
+sudo reboot
+```
+
+After the driver is installed, install the CUDA toolkit (reference):
+
+```bash
+sudo apt install -y cuda-toolkit-12-5
+```
+
+Download and install the CUDA toolkit from NVIDIA:
+
+> **Note**
+> The example shows the CUDA package path for Ubuntu 24.04 LTS. Use the path that's specific to the version you plan to use.
+>
+> Visit the NVIDIA Download Center or the NVIDIA CUDA Resources page for the full path that's specific to each version.
+
+```bash
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo apt install -y ./cuda-keyring_1.1-1_all.deb
+sudo apt update
+sudo apt -y install cuda-toolkit-12-5
+```
+
+The installation can take several minutes.
+
+Reboot the VM after installation completes:
+
+```bash
+sudo reboot
+```
+
+Verify that the GPU is correctly recognized (after reboot):
+
+```bash
+nvidia-smi
+```
+
+### Install and start Docker
+
+```bash
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo systemctl restart docker
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+This installs Docker, enables it on boot, and adds the user to the `docker` group to avoid needing `sudo` for every `docker` command.
+
+### Verify GPU inside Docker
+
+```bash
+sudo docker run --rm --gpus all nvidia/cuda:12.2.2-base-ubuntu22.04 nvidia-smi
+```
+
+#### NVIDIA driver updates
+
+We recommend that you periodically update NVIDIA drivers after deployment.
+
+```bash
+sudo apt update
+sudo apt full-upgrade
+```
+
 ---
 
 ## Architecture Overview
 
-```mermaid
-flowchart LR
-    O["docker-compose.override.yml<br/>(CPU binding / NUMA policy)"]
-
-    subgraph GPU["GPU Service"]
-        G1["vllm-server"]
-        G2["Pinned NUMA-local CPUs<br/>+ PCT high-priority cores"]
-        G3["Deploy / Benchmark"]
-        G1 --> G2 --> G3
-    end
-
-    subgraph CPU["CPU Service"]
-        C1["vllm-cpu-server"]
-        C2["Uses idle CPUs released<br/>from GPU workload"]
-        C3["Deploy / Benchmark"]
-        C1 --> C2 --> C3
-    end
-
-    O --> GPU
-    O --> CPU
-```
 
 **docker-compose.override.yml** defines CPU pinning policy:
 
@@ -65,7 +164,20 @@ This list is used for CPU binding.
 
 ## 1. Environment Setup
 
-Install required dependencies:
+Install the Python venv package:
+
+```bash
+sudo apt install python3.12-venv -y
+```
+
+Then create and activate the venv:
+
+```bash
+python3 -m venv ~/venv
+source ~/venv/bin/activate
+```
+
+Then install your requirements:
 
 ```bash
 pip install -r requirements_cpu_binding.txt
