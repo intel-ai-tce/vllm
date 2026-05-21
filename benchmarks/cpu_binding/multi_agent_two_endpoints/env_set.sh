@@ -9,11 +9,11 @@ set -euo pipefail
 
 export DRY_RUN="${DRY_RUN:-0}"
 
-export CPU_URL="${CPU_URL:-http://172.16.20.13:8001}"
+export CPU_URL="${CPU_URL:-http://localhost:8001}"
 export CPU_MODEL="${CPU_MODEL:-meta-llama/Llama-3.1-8B-Instruct}"
 
-export GPU_URL="${GPU_URL:-http://172.16.20.13:8000}"
-export GPU_MODEL="${GPU_MODEL:-meta-llama/Llama-3.1-405B-Instruct}"
+export GPU_URL="${GPU_URL:-http://localhost:8000}"
+export GPU_MODEL="${GPU_MODEL:-Qwen/Qwen2.5-32B-Instruct}"
 
 export RESEARCHER_MAX_TOKENS="${RESEARCHER_MAX_TOKENS:-700}"
 export RESEARCHER_TEMP="${RESEARCHER_TEMP:-0.2}"

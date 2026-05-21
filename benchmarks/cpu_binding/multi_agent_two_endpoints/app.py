@@ -103,15 +103,15 @@ INDEX_HTML = '''
 
     <div class="row">
       <div class="panel researcher">
-        <h3>Researcher (CPU 8B)</h3>
+        <h3>Researcher (CPU {{CPU_MODEL}})</h3>
         <textarea id="research" readonly></textarea>
       </div>
       <div class="panel writer">
-        <h3>Writer (GPU 405B)</h3>
+        <h3>Writer (GPU {{GPU_MODEL}})</h3>
         <textarea id="writer" readonly></textarea>
       </div>
       <div class="panel reviewer">
-        <h3>Reviewer (CPU 8B)</h3>
+        <h3>Reviewer (CPU {{CPU_MODEL}})</h3>
         <textarea id="review" readonly></textarea>
       </div>
     </div>
@@ -193,7 +193,11 @@ INDEX_HTML = '''
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return INDEX_HTML
+    cfg = PipelineConfig.from_env()
+    html = INDEX_HTML
+    html = html.replace("{{CPU_MODEL}}", cfg.cpu_model.split("/")[-1])
+    html = html.replace("{{GPU_MODEL}}", cfg.gpu_model.split("/")[-1])
+    return html
 
 
 @app.get("/mode")
