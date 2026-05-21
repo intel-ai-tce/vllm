@@ -280,6 +280,79 @@ benchmarks/results-cpu/
 
 ---
 
+## Azure Blackwell VM Deployment Notes
+
+When deploying on Azure **NC RTX PRO 6000 BSE v6** (Blackwell) VMs, several adjustments are required:
+
+### NVIDIA Driver: Use GRID vGPU20, Not Ubuntu Packages
+
+The standard `nvidia-driver-595-open` from Ubuntu **does not support** the Azure Blackwell vGPU (PCI ID `10de:2bb5`, subsystem `1414:2187`). You must use the Azure GRID vGPU20 driver:
+
+```bash
+wget https://download.microsoft.com/download/51239696-ec04-4c02-a6b3-1d9c608fb57c/NVIDIA-Linux-x86_64-595.58.03-grid-azure.run
+chmod +x NVIDIA-Linux-x86_64-595.58.03-grid-azure.run
+sudo ./NVIDIA-Linux-x86_64-595.58.03-grid-azure.run -M open --silent
+```
+
+The `-M open` flag is required because Blackwell requires open kernel modules.
+
+After driver installation, ensure nvidia-container-toolkit is installed and configured:
+
+```bash
+sudo apt install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
+
+### MIG Mode
+
+Azure enables MIG on Blackwell VMs and it **cannot be disabled** (`nvidia-smi -i 0 -mig 0` returns "Not Supported"). This is not a problem — the single MIG partition exposes the full GPU resources (93.9 GB usable VRAM, 188 SMs). vLLM works normally.
+
+### Tensor Parallel Size Overrides
+
+- **GPU**: Single-GPU VMs must override `EXTRA_ARGS` to set `--tensor-parallel-size 1` (default is 2).
+- **CPU**: The CPU container auto-detects NUMA nodes for TP size. On 6-NUMA-node systems, this sets TP=6, but Llama-3.1-8B has 32 attention heads (not divisible by 6). Override with `--tensor-parallel-size 4` via `CPU_EXTRA_ARGS`.
+
+### Disk Space Management
+
+The 128GB root disk fills quickly with HF model cache (~73GB for Qwen-32B + Llama-8B) plus Docker images (~35GB). Move the HF cache to the ephemeral disk:
+
+```bash
+mv ~/.cache/huggingface /mnt/hf_cache
+ln -s /mnt/hf_cache ~/.cache/huggingface
+```
+
+Set `MODEL_CACHE=/mnt/hf_cache` when running compose. Note: `/mnt` is ephemeral and wiped on VM deallocation (but persists through restarts).
+
+### Standalone Deployment (Outside vllm Repo Tree)
+
+When deploying the `cpu_binding/` directory standalone (not inside the full vllm repo), the default relative volume paths (`../../benchmarks`, `../../.buildkite`) won't exist. Override them:
+
+```bash
+export BENCHMARKS_DIR=/path/to/benchmarks
+export BUILDKITE_DIR=/path/to/.buildkite
+export MODEL_CACHE=/path/to/hf_cache
+export CPU_MODEL_CACHE=/path/to/hf_cache
+```
+
+### CUDA Kernel Compilation on First Inference
+
+The first inference request on a Blackwell GPU triggers CUDA kernel compilation that takes **30+ minutes**. Plan for this warmup time when deploying. Subsequent requests are fast. Do not use health-check probes that send inference requests during startup.
+
+### Example: Single-GPU Deploy with CPU Service
+
+```bash
+MODE=deploy MODEL="Qwen/Qwen2.5-32B-Instruct" PORT=8000 \
+  CPU_MODEL="meta-llama/Llama-3.1-8B-Instruct" CPU_PORT=8001 \
+  HF_TOKEN="<your-token>" \
+  MODEL_CACHE=/mnt/hf_cache CPU_MODEL_CACHE=/mnt/hf_cache \
+  EXTRA_ARGS="--swap-space 16 --tensor-parallel-size 1 --disable-log-stats --gpu-memory-utilization 0.85 --max-model-len 2048" \
+  CPU_EXTRA_ARGS="--dtype bfloat16 --distributed-executor-backend mp --block-size 128 --trust-remote-code --enable-chunked-prefill --disable-log-stats --enforce-eager --max-num-batched-tokens 2048 --max-num-seqs 256 --tensor-parallel-size 4" \
+  docker compose -f docker-compose.yml -f docker-compose.cpu.yml -f docker-compose.override.yml --profile deploy up -d
+```
+
+---
+
 ## Key Takeaways
 
 - **docker-compose.override.yml** defines NUMA-aware CPU pinning

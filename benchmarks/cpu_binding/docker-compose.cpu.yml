@@ -26,10 +26,9 @@ services:
     shm_size: 128g
 
     volumes:
-      - /mnt/hf_cache:/mnt/hf_cache
-      - "../../benchmarks:/vllm-workspace/benchmarks"
-      - "../../.buildkite:/vllm-workspace/.buildkite"
-        #- "./tests/run-performance-benchmarks.sh:/vllm-workspace/.buildkite/performance-benchmarks/scripts/run-performance-benchmarks.sh"
+      - "${CPU_MODEL_CACHE:-/mnt/hf_cache}:/mnt/hf_cache"
+      - "${BENCHMARKS_DIR:-../../benchmarks}:/vllm-workspace/benchmarks"
+      - "${BUILDKITE_DIR:-../../.buildkite}:/vllm-workspace/.buildkite"
       - "./tests/serving-tests-cpu-stress.json:/vllm-workspace/.buildkite/performance-benchmarks/tests/serving-tests-cpu.json:ro"
       - "./results-cpu:/vllm-workspace/benchmarks/results"
 
