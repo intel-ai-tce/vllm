@@ -24,17 +24,18 @@ Verify the GPU is exposed to the VM:
 lspci | grep -i NVIDIA
 ```
 
-`lspci` lists the PCIe devices on the VM, including the InfiniBand NIC and GPUs, if any. If `lspci` doesn't return successfully, you may need to install LIS on CentOS/RHEL.
+`lspci` lists PCIe devices on the VM, including the InfiniBand NIC and GPUs. If it fails, you may need to install LIS on CentOS/RHEL.
 
-Then run installation commands specific to your distribution.
+## Install Drivers and CUDA on Azure NC RTX PRO 6000 BSE v6 (Blackwell)
 
-## Install CUDA drivers on N-series VMs
+This guide targets Azure NC RTX PRO 6000 BSE v6 (Blackwell).
+Use Azure GRID vGPU20 drivers for this VM family, not Ubuntu-packaged NVIDIA drivers.
 
 Reference this guide: [Install GRID drivers on NCv6 RTX PRO 6000 BSE VMs](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup#install-grid-drivers-on-ncv6-rtx-pro-6000-bse-vms).
 
 ### Disable Secure Boot and vTPM
 
-Ensure Secure Boot and vTPM are disabled — done via the Azure Portal:
+Disable Secure Boot and vTPM in the Azure Portal:
 
 1. Stop the VM.
 2. Go to **Configuration** → **Security type**.
@@ -50,21 +51,26 @@ mokutil --sb-state
 
 Should return `SecureBoot disabled`.
 
-#### Ubuntu
+### NVIDIA Driver (Required for Blackwell)
 
-Ubuntu packages NVIDIA proprietary drivers. Those drivers come directly from NVIDIA and are simply packaged by Ubuntu so that they can be automatically managed by the system. Downloading and installing drivers from another source can lead to a broken system. Moreover, installing third-party drivers requires extra steps on VMs with TrustedLaunch and Secure Boot enabled. They require the user to add a new Machine Owner Key for the system to boot. Drivers from Ubuntu are signed by Canonical and will work with Secure Boot.
+Do not use Ubuntu-packaged NVIDIA drivers on Azure Blackwell VMs.
+The Ubuntu `nvidia-driver-595-open` package does not support the Azure Blackwell vGPU
+(PCI ID `10de:2bb5`, subsystem `1414:2187`).
 
-Install the `ubuntu-drivers` utility:
-
-```bash
-sudo apt update && sudo apt install -y ubuntu-drivers-common
-```
-
-Install the latest NVIDIA drivers:
+Install Azure GRID vGPU20:
 
 ```bash
-sudo ubuntu-drivers install
+sudo apt update
+sudo apt install -y build-essential dkms linux-headers-$(uname -r)
+command -v cc
+cc --version
+
+wget https://download.microsoft.com/download/51239696-ec04-4c02-a6b3-1d9c608fb57c/NVIDIA-Linux-x86_64-595.58.03-grid-azure.run --no-check-certificate
+chmod +x NVIDIA-Linux-x86_64-595.58.03-grid-azure.run
+sudo ./NVIDIA-Linux-x86_64-595.58.03-grid-azure.run -M open --silent
 ```
+
+The `-M open` flag is required because Blackwell needs open kernel modules.
 
 Reboot the VM after the GPU driver is installed:
 
@@ -72,13 +78,7 @@ Reboot the VM after the GPU driver is installed:
 sudo reboot
 ```
 
-After the driver is installed, install the CUDA toolkit (reference):
-
-```bash
-sudo apt install -y cuda-toolkit-12-5
-```
-
-Download and install the CUDA toolkit from NVIDIA:
+After the driver is installed, add the NVIDIA CUDA apt repository and install the CUDA toolkit:
 
 > **Note**
 > The example shows the CUDA package path for Ubuntu 24.04 LTS. Use the path that's specific to the version you plan to use.
@@ -89,10 +89,13 @@ Download and install the CUDA toolkit from NVIDIA:
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 sudo apt install -y ./cuda-keyring_1.1-1_all.deb
 sudo apt update
+apt-cache search '^cuda-toolkit-[0-9-]\+$' | sort
 sudo apt -y install cuda-toolkit-12-5
 ```
 
-The installation can take several minutes.
+If `cuda-toolkit-12-5` is not available on your image, install the latest version shown by `apt-cache search`.
+
+Installation can take several minutes.
 
 Reboot the VM after installation completes:
 
@@ -117,7 +120,15 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-This installs Docker, enables it on boot, and adds the user to the `docker` group to avoid needing `sudo` for every `docker` command.
+This installs Docker, enables it at boot, and adds your user to the `docker` group so `sudo` is not needed for each Docker command.
+
+Install and configure NVIDIA Container Toolkit:
+
+```bash
+sudo apt install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
 
 ### Verify GPU inside Docker
 
@@ -127,7 +138,9 @@ sudo docker run --rm --gpus all nvidia/cuda:12.2.2-base-ubuntu22.04 nvidia-smi
 
 #### NVIDIA driver updates
 
-We recommend that you periodically update NVIDIA drivers after deployment.
+Periodically update NVIDIA drivers after deployment.
+For this VM family, use Azure/Microsoft-published GRID driver updates and do not
+switch to Ubuntu-packaged NVIDIA drivers.
 
 ```bash
 sudo apt update
@@ -152,13 +165,13 @@ sudo apt full-upgrade
 Follow [Enabling Priority Core Turbo](priority_core_turbo/README.md)
 to enable PCT on Intel® Xeon® 6 platforms.
 
-After enabling PCT a CPU list file will be generated:
+After enabling PCT, a CPU list file is generated:
 
 ```bash
 priority_core_turbo/results/clos0_cpulist.txt
 ```
 
-This list is used for CPU binding.
+Use this list for CPU binding.
 
 ---
 
@@ -170,19 +183,125 @@ Install the Python venv package:
 sudo apt install python3.12-venv -y
 ```
 
-Then create and activate the venv:
+Create and activate the venv:
 
 ```bash
 python3 -m venv ~/venv
 source ~/venv/bin/activate
 ```
 
-Then install your requirements:
+Clone vLLM, switch to the Azure CPU binding branch, and move into `vllm/benchmarks`:
 
 ```bash
-pip install -r requirements_cpu_binding.txt
+git clone https://github.com/vllm-project/vllm.git
+cd vllm
+git checkout cpu_binding_demo_Azure
+cd benchmarks
+```
+
+Install requirements:
+
+```bash
+pip install -r cpu_binding/requirements_cpu_binding.txt
 pip install regex
 ```
+
+Preflight checks before generating CPU binding:
+
+```bash
+cd ~/vllm/benchmarks/cpu_binding
+pwd
+ls generate_cpu_binding_from_csv.py cpu_binding_gnr.csv
+```
+
+---
+
+## Blackwell Runtime Notes (Azure NC RTX PRO 6000 BSE v6)
+
+### MIG Mode
+
+Azure enables MIG, and it cannot be disabled on this VM type
+(`nvidia-smi -i 0 -mig 0` returns `Not Supported`).
+This is expected, and vLLM works normally.
+
+### Tensor Parallel Size Overrides
+
+- **GPU**: Single-GPU VMs must override `EXTRA_ARGS` to set
+  `--tensor-parallel-size 1` (default is 2).
+- **CPU**: The CPU container auto-detects NUMA nodes for TP size. On
+  6-NUMA-node systems, this sets TP=6, but Llama-3.1-8B has 32 attention
+  heads (not divisible by 6). Override with `--tensor-parallel-size 4` via
+  `CPU_EXTRA_ARGS`.
+
+### Disk Space Management
+
+The 128GB root disk can fill from two sources:
+
+- HF model cache (fix with `MODEL_CACHE` and `CPU_MODEL_CACHE`)
+- Docker/containerd image layers under `/var/lib` (fix by moving Docker runtime storage to `/mnt`)
+
+#### A) Configure HF cache on the ephemeral disk
+
+```bash
+sudo mkdir -p /mnt/hf_cache
+sudo chown -R $USER:docker /mnt/hf_cache
+mkdir -p ~/.cache
+ln -sfn /mnt/hf_cache ~/.cache/huggingface
+ls -ld /mnt/hf_cache ~/.cache/huggingface
+
+export MODEL_CACHE=/mnt/hf_cache
+export CPU_MODEL_CACHE=/mnt/hf_cache
+```
+
+#### B) Move Docker/containerd runtime storage to the ephemeral disk
+
+```bash
+sudo systemctl stop docker
+sudo systemctl stop containerd
+
+sudo mkdir -p /mnt/docker-data /mnt/containerd-data
+sudo rsync -aHAX /var/lib/docker/ /mnt/docker-data/ 2>/dev/null || true
+sudo rsync -aHAX /var/lib/containerd/ /mnt/containerd-data/ 2>/dev/null || true
+
+sudo mv /var/lib/docker /var/lib/docker.bak 2>/dev/null || true
+sudo mv /var/lib/containerd /var/lib/containerd.bak 2>/dev/null || true
+
+sudo ln -s /mnt/docker-data /var/lib/docker
+sudo ln -s /mnt/containerd-data /var/lib/containerd
+
+sudo systemctl start containerd
+sudo systemctl start docker
+
+docker info | grep -i "Docker Root Dir"
+df -h
+```
+
+`Docker Root Dir` should report `/mnt/docker-data`.
+
+Note: `/mnt` is ephemeral and wiped on VM deallocation (but persists across
+restarts).
+
+### Standalone Deployment (Outside vllm Repo Tree)
+
+When deploying the `cpu_binding/` directory standalone (outside the full
+vllm repo), the default relative volume paths (`../../benchmarks`,
+`../../.buildkite`) won't exist. Override them with real paths on the host.
+
+Keep repo mounts under your local vllm checkout, and keep model cache on
+`/mnt`:
+
+```bash
+export BENCHMARKS_DIR=~/vllm/benchmarks
+export BUILDKITE_DIR=~/vllm/.buildkite
+export MODEL_CACHE=/mnt/hf_cache
+export CPU_MODEL_CACHE=/mnt/hf_cache
+```
+
+### CUDA Kernel Compilation on First Inference
+
+The first inference request on a Blackwell GPU triggers CUDA kernel
+compilation and can take **30+ minutes**. Plan for this warmup time. Do not
+use health checks that send inference requests during startup.
 
 ---
 
@@ -191,10 +310,18 @@ pip install regex
 Generate the CPU binding configuration:
 
 ```bash
-export MODEL="Qwen/Qwen2.5-32B-Instruct"
-export HF_TOKEN="<your huggingface token>"
+cd ~/vllm/benchmarks/cpu_binding
 
-python3 generate_cpu_binding_from_csv.py   --settings cpu_binding_gnr.csv   --output docker-compose.override.yml
+# set token again on one line (no trailing newline)
+export HF_TOKEN="YOUR_HF_TOKEN"
+
+export MODEL="Qwen/Qwen2.5-32B-Instruct"
+export MODEL_CACHE=/mnt/hf_cache
+export CPU_MODEL_CACHE=/mnt/hf_cache
+
+python3 generate_cpu_binding_from_csv.py \
+  --settings cpu_binding_gnr.csv \
+  --output docker-compose.override.yml
 ```
 
 This generates a **docker-compose.override.yml** containing cpuset rules using lookup table
@@ -208,9 +335,35 @@ All **deploy** and **benchmark** runs should include this override file.
 
 Runs a persistent OpenAI‑compatible vLLM server.
 
+Run from `~/vllm/benchmarks/cpu_binding`.
+
 ```bash
 MODE=deploy MODEL="Qwen/Qwen2.5-32B-Instruct" PORT=8000 docker compose   -f docker-compose.yml   -f docker-compose.override.yml   --profile deploy up
 ```
+
+#### Troubleshooting: `docker compose` not available
+
+If you see `docker: unknown command: docker compose` or `unknown shorthand flag: 'f' in -f`, install and use the `docker-compose` binary:
+
+```bash
+# check available compose packages
+apt-cache search docker-compose | cat
+
+# install distro compose binary
+sudo apt install -y docker-compose
+
+# verify
+docker-compose --version
+```
+
+Then run deploy with:
+
+```bash
+MODE=deploy MODEL="Qwen/Qwen2.5-32B-Instruct" PORT=8000 \
+docker-compose -f docker-compose.yml -f docker-compose.override.yml --profile deploy up
+```
+
+If image extraction fails with `no space left on device`, complete the Docker/containerd move in **Disk Space Management** and retry.
 
 Test:
 
@@ -224,8 +377,16 @@ curl http://localhost:8000/v1/models
 
 Runs the automated benchmark driver.
 
+Run from `~/vllm/benchmarks/cpu_binding`.
+
 ```bash
 MODE=benchmark docker compose   -f docker-compose.yml   -f docker-compose.override.yml   --profile benchmark up
+```
+
+If your system uses `docker-compose` instead of `docker compose`, run:
+
+```bash
+MODE=benchmark docker-compose -f docker-compose.yml -f docker-compose.override.yml --profile benchmark up
 ```
 
 Results:
@@ -258,6 +419,12 @@ Both GPU and CPU services can run simultaneously while sharing the same CPU bind
 MODE=deploy MODEL="meta-llama/Llama-3.1-405B-Instruct" PORT=8000 CPU_MODEL=meta-llama/Llama-3.1-8B-Instruct CPU_PORT=8001 docker compose   -f docker-compose.yml   -f docker-compose.cpu.yml   -f docker-compose.override.yml   --profile deploy up
 ```
 
+If your system uses `docker-compose` instead of `docker compose`, run:
+
+```bash
+MODE=deploy MODEL="meta-llama/Llama-3.1-405B-Instruct" PORT=8000 CPU_MODEL=meta-llama/Llama-3.1-8B-Instruct CPU_PORT=8001 docker-compose -f docker-compose.yml -f docker-compose.cpu.yml -f docker-compose.override.yml --profile deploy up
+```
+
 Test:
 
 ```bash
@@ -271,6 +438,12 @@ curl http://localhost:8001/v1/models
 MODE=benchmark docker compose   -f docker-compose.yml   -f docker-compose.cpu.yml   -f docker-compose.override.yml   --profile benchmark up
 ```
 
+If your system uses `docker-compose` instead of `docker compose`, run:
+
+```bash
+MODE=benchmark docker-compose -f docker-compose.yml -f docker-compose.cpu.yml -f docker-compose.override.yml --profile benchmark up
+```
+
 Outputs:
 
 ```bash
@@ -279,65 +452,6 @@ benchmarks/results-cpu/
 ```
 
 ---
-
-## Azure Blackwell VM Deployment Notes
-
-When deploying on Azure **NC RTX PRO 6000 BSE v6** (Blackwell) VMs, several adjustments are required:
-
-### NVIDIA Driver: Use GRID vGPU20, Not Ubuntu Packages
-
-The standard `nvidia-driver-595-open` from Ubuntu **does not support** the Azure Blackwell vGPU (PCI ID `10de:2bb5`, subsystem `1414:2187`). You must use the Azure GRID vGPU20 driver:
-
-```bash
-wget https://download.microsoft.com/download/51239696-ec04-4c02-a6b3-1d9c608fb57c/NVIDIA-Linux-x86_64-595.58.03-grid-azure.run
-chmod +x NVIDIA-Linux-x86_64-595.58.03-grid-azure.run
-sudo ./NVIDIA-Linux-x86_64-595.58.03-grid-azure.run -M open --silent
-```
-
-The `-M open` flag is required because Blackwell requires open kernel modules.
-
-After driver installation, ensure nvidia-container-toolkit is installed and configured:
-
-```bash
-sudo apt install -y nvidia-container-toolkit
-sudo nvidia-ctk runtime configure --runtime=docker
-sudo systemctl restart docker
-```
-
-### MIG Mode
-
-Azure enables MIG on Blackwell VMs and it **cannot be disabled** (`nvidia-smi -i 0 -mig 0` returns "Not Supported"). This is not a problem — the single MIG partition exposes the full GPU resources (93.9 GB usable VRAM, 188 SMs). vLLM works normally.
-
-### Tensor Parallel Size Overrides
-
-- **GPU**: Single-GPU VMs must override `EXTRA_ARGS` to set `--tensor-parallel-size 1` (default is 2).
-- **CPU**: The CPU container auto-detects NUMA nodes for TP size. On 6-NUMA-node systems, this sets TP=6, but Llama-3.1-8B has 32 attention heads (not divisible by 6). Override with `--tensor-parallel-size 4` via `CPU_EXTRA_ARGS`.
-
-### Disk Space Management
-
-The 128GB root disk fills quickly with HF model cache (~73GB for Qwen-32B + Llama-8B) plus Docker images (~35GB). Move the HF cache to the ephemeral disk:
-
-```bash
-mv ~/.cache/huggingface /mnt/hf_cache
-ln -s /mnt/hf_cache ~/.cache/huggingface
-```
-
-Set `MODEL_CACHE=/mnt/hf_cache` when running compose. Note: `/mnt` is ephemeral and wiped on VM deallocation (but persists through restarts).
-
-### Standalone Deployment (Outside vllm Repo Tree)
-
-When deploying the `cpu_binding/` directory standalone (not inside the full vllm repo), the default relative volume paths (`../../benchmarks`, `../../.buildkite`) won't exist. Override them:
-
-```bash
-export BENCHMARKS_DIR=/path/to/benchmarks
-export BUILDKITE_DIR=/path/to/.buildkite
-export MODEL_CACHE=/path/to/hf_cache
-export CPU_MODEL_CACHE=/path/to/hf_cache
-```
-
-### CUDA Kernel Compilation on First Inference
-
-The first inference request on a Blackwell GPU triggers CUDA kernel compilation that takes **30+ minutes**. Plan for this warmup time when deploying. Subsequent requests are fast. Do not use health-check probes that send inference requests during startup.
 
 ### Example: Single-GPU Deploy with CPU Service
 
