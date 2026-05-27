@@ -218,3 +218,40 @@ bash Run.sh
 - **First inference warmup**: The first request through the GPU Writer agent triggers CUDA kernel compilation on Blackwell GPUs, which takes **30+ minutes**. Set `WRITER_TIMEOUT_S=2400` to avoid timeout. Subsequent requests are fast.
 - **Port 8080 only**: Only the UI port needs to be exposed publicly. The vLLM endpoints (8000, 8001) can remain internal to the VM.
 - **Virtual environment required**: Ubuntu 24.04 enforces PEP 668 — use a venv for pip installs.
+
+### Single-endpoint fallback
+
+When only one vLLM endpoint is available, point both `CPU_URL` and `GPU_URL` at the same address:
+
+```bash
+DRY_RUN=0 \
+CPU_URL=http://127.0.0.1:8000 \
+GPU_URL=http://127.0.0.1:8000 \
+CPU_MODEL=Qwen/Qwen2.5-32B-Instruct \
+GPU_MODEL=Qwen/Qwen2.5-32B-Instruct \
+uvicorn app:app --host 0.0.0.0 --port 8080
+```
+
+### Verify UI
+
+```bash
+curl -s http://127.0.0.1:8080/mode
+curl -s -X POST http://127.0.0.1:8080/start \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Say hello"}'
+```
+
+- `/mode` returns JSON with `mode: vllm` and the configured URLs.
+- `/start` returns a `run_id`; poll with `/poll?run_id=<id>&cursor=0` to get events.
+
+### Disk space
+
+If the root disk fills up, move pip temp/cache to `/mnt`:
+
+```bash
+sudo mkdir -p /mnt/venv-ui /mnt/pip-tmp /mnt/pip-cache
+sudo chown -R $USER:docker /mnt/venv-ui /mnt/pip-tmp /mnt/pip-cache
+python3 -m venv /mnt/venv-ui
+source /mnt/venv-ui/bin/activate
+TMPDIR=/mnt/pip-tmp PIP_CACHE_DIR=/mnt/pip-cache pip install -r requirements.txt
+```
