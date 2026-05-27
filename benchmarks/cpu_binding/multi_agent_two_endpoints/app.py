@@ -1,9 +1,10 @@
 import asyncio
 import json
-from typing import AsyncGenerator, Dict, Any
+import uuid
+from typing import AsyncGenerator, Dict, Any, List
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from agents import run_researcher, run_writer, run_reviewer, PipelineConfig
@@ -13,10 +14,8 @@ app = FastAPI()
 # Serve static files (logos)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
-def sse(event: str, data: Dict[str, Any]) -> str:
-    payload = json.dumps(data, ensure_ascii=False)
-    return f"event: {event}\ndata: {payload}\n\n"
+# In-memory store for active pipeline runs
+_runs: Dict[str, Dict[str, Any]] = {}
 
 
 INDEX_HTML = '''
@@ -90,7 +89,7 @@ INDEX_HTML = '''
     </style>
   </head>
   <body>
-    <h2>Pipelined Multi-Agent (Researcher → Writer → Reviewer)</h2>
+    <h2>Pipelined Multi-Agent (Researcher &rarr; Writer &rarr; Reviewer)</h2>
 
     <div class="controls">
       <input id="task" type="text"
@@ -98,7 +97,7 @@ INDEX_HTML = '''
       <button id="run">Run</button>
       <button id="stop">Stop</button>
       <span id="mode" class="pill">mode: ...</span>
-      <span id="routing" class="pill">routing: researcher/reviewer→CPU, writer→GPU</span>
+      <span id="routing" class="pill">routing: researcher/reviewer&rarr;CPU, writer&rarr;GPU</span>
     </div>
 
     <div class="row">
@@ -125,7 +124,11 @@ INDEX_HTML = '''
     </div>
 
     <script>
-      let es = null;
+      let runId = null;
+      let pollTimer = null;
+      let cursor = 0;
+
+      const panelMap = {researcher: "research", writer: "writer", reviewer: "review"};
 
       function appendText(id, text) {
         const el = document.getElementById(id);
@@ -144,6 +147,14 @@ INDEX_HTML = '''
         log.scrollTop = log.scrollHeight;
       }
 
+      function showError(stage, msg) {
+        const id = panelMap[stage];
+        if (!id) return;
+        const el = document.getElementById(id);
+        el.value += "\\n[ERROR] " + msg;
+        el.style.borderColor = "#ef4444";
+      }
+
       async function fetchMode() {
         const r = await fetch("/mode");
         const j = await r.json();
@@ -157,31 +168,73 @@ INDEX_HTML = '''
         document.getElementById("log").innerHTML = "";
       }
 
+      function processEvent(evt) {
+        if (evt.event === "status") {
+          logLine({event: "status", ...evt.data});
+        } else if (evt.event === "update") {
+          const data = evt.data;
+          logLine(data);
+          if (data.type === "error") showError(data.stage, data.error);
+          if (data.type === "text") {
+            const id = panelMap[data.stage];
+            if (id) appendText(id, data.delta);
+          }
+        }
+      }
+
+      async function poll() {
+        if (!runId) return;
+        try {
+          const r = await fetch("/poll?run_id=" + runId + "&cursor=" + cursor);
+          const j = await r.json();
+          if (j.events) {
+            for (const evt of j.events) processEvent(evt);
+            cursor += j.events.length;
+          }
+          if (j.done) {
+            stopPolling();
+            return;
+          }
+        } catch(e) {
+          logLine({event: "status", state: "poll error", error: e.message});
+        }
+      }
+
+      function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }
+
       document.getElementById("run").onclick = async () => {
         resetPanels();
-        await fetchMode();
-
-        if (es) es.close();
-        const task = encodeURIComponent(document.getElementById("task").value);
-        es = new EventSource("/stream?task=" + task);
-
-        es.addEventListener("status", e => {
-          logLine({event:"status", ...JSON.parse(e.data)});
+        stopPolling();
+        Object.values(panelMap).forEach(id => {
+          document.getElementById(id).style.borderColor = "";
         });
-
-        es.addEventListener("update", e => {
-          const data = JSON.parse(e.data);
-          logLine(data);
-          if (data.stage === "researcher" && data.type === "text") appendText("research", data.delta);
-          if (data.stage === "writer" && data.type === "text") appendText("writer", data.delta);
-          if (data.stage === "reviewer" && data.type === "text") appendText("review", data.delta);
-        });
+        try { await fetchMode(); } catch(e) {
+          logLine({event: "status", state: "error", error: "Failed to reach server"});
+          return;
+        }
+        const task = document.getElementById("task").value;
+        try {
+          const r = await fetch("/start", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({task: task})
+          });
+          const j = await r.json();
+          runId = j.run_id;
+          cursor = 0;
+          logLine({event: "status", state: "started", run_id: runId});
+          pollTimer = setInterval(poll, 400);
+        } catch(e) {
+          logLine({event: "status", state: "error", error: e.message});
+        }
       };
 
       document.getElementById("stop").onclick = () => {
-        if (es) es.close();
-        es = null;
-        logLine({event:"status", state:"stopped"});
+        stopPolling();
+        runId = null;
+        logLine({event: "status", state: "stopped"});
       };
 
       fetchMode();
@@ -210,56 +263,110 @@ def mode():
     }
 
 
-@app.get("/stream")
-async def stream(task: str):
+@app.post("/start")
+async def start_run(body: Dict[str, Any]):
+    """Kick off pipeline in background, return run_id for polling."""
+    task = body.get("task", "")
     cfg = PipelineConfig.from_env()
+    run_id = uuid.uuid4().hex[:12]
 
-    async def gen() -> AsyncGenerator[str, None]:
+    run_state = {
+        "events": [],
+        "done": False,
+    }
+    _runs[run_id] = run_state
+
+    async def run_pipeline():
         research_q: asyncio.Queue = asyncio.Queue()
         writer_q: asyncio.Queue = asyncio.Queue()
         ui_q: asyncio.Queue = asyncio.Queue()
 
         async def bridge_research():
-            async for delta in run_researcher(task, cfg):
-                await research_q.put(delta)
-                await ui_q.put({"stage": "researcher", "type": "text", "delta": delta})
-            await research_q.put(None)
-            await ui_q.put({"stage": "researcher", "type": "done"})
+            try:
+                async for delta in run_researcher(task, cfg):
+                    await research_q.put(delta)
+                    await ui_q.put({"stage": "researcher", "type": "text", "delta": delta})
+            except Exception as exc:
+                await ui_q.put({"stage": "researcher", "type": "error", "error": str(exc)})
+            finally:
+                await research_q.put(None)
+                await ui_q.put({"stage": "researcher", "type": "done"})
 
         async def bridge_writer():
-            async for delta in run_writer(task, research_q, cfg):
-                await writer_q.put(delta)
-                await ui_q.put({"stage": "writer", "type": "text", "delta": delta})
-            await writer_q.put(None)
-            await ui_q.put({"stage": "writer", "type": "done"})
+            try:
+                async for delta in run_writer(task, research_q, cfg):
+                    await writer_q.put(delta)
+                    await ui_q.put({"stage": "writer", "type": "text", "delta": delta})
+            except Exception as exc:
+                await ui_q.put({"stage": "writer", "type": "error", "error": str(exc)})
+            finally:
+                await writer_q.put(None)
+                await ui_q.put({"stage": "writer", "type": "done"})
 
         async def bridge_reviewer():
-            async for delta in run_reviewer(task, writer_q, cfg):
-                await ui_q.put({"stage": "reviewer", "type": "text", "delta": delta})
-            await ui_q.put({"stage": "reviewer", "type": "done"})
+            try:
+                async for delta in run_reviewer(task, writer_q, cfg):
+                    await ui_q.put({"stage": "reviewer", "type": "text", "delta": delta})
+            except Exception as exc:
+                await ui_q.put({"stage": "reviewer", "type": "error", "error": str(exc)})
+            finally:
+                await ui_q.put({"stage": "reviewer", "type": "done"})
 
-        tasks = [
+        bg_tasks = [
             asyncio.create_task(bridge_research()),
             asyncio.create_task(bridge_writer()),
             asyncio.create_task(bridge_reviewer()),
         ]
 
-        yield sse("status", {
-            "state": "started",
-            "mode": "dry-run" if cfg.dry_run else "vllm",
-            "routing": "researcher/reviewer->CPU, writer->GPU",
+        run_state["events"].append({
+            "event": "status",
+            "data": {
+                "state": "started",
+                "mode": "dry-run" if cfg.dry_run else "vllm",
+                "routing": "researcher/reviewer->CPU, writer->GPU",
+            },
         })
 
         done = {"researcher": False, "writer": False, "reviewer": False}
+        stall_timeout = max(cfg.writer_timeout_s, 300) + 60
         while True:
-            msg = await ui_q.get()
+            try:
+                msg = await asyncio.wait_for(ui_q.get(), timeout=stall_timeout)
+            except asyncio.TimeoutError:
+                run_state["events"].append({
+                    "event": "status",
+                    "data": {"state": "error", "error": "Pipeline stalled."},
+                })
+                break
             if msg.get("type") == "done":
                 done[msg["stage"]] = True
-            yield sse("update", msg)
+            run_state["events"].append({"event": "update", "data": msg})
             if all(done.values()):
                 break
 
-        await asyncio.gather(*tasks, return_exceptions=True)
-        yield sse("status", {"state": "finished"})
+        await asyncio.gather(*bg_tasks, return_exceptions=True)
+        run_state["events"].append({
+            "event": "status",
+            "data": {"state": "finished"},
+        })
+        run_state["done"] = True
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    asyncio.create_task(run_pipeline())
+    return {"run_id": run_id}
+
+
+@app.get("/poll")
+async def poll(run_id: str, cursor: int = 0):
+    """Return new events since cursor."""
+    run_state = _runs.get(run_id)
+    if not run_state:
+        return JSONResponse({"error": "unknown run_id"}, status_code=404)
+
+    events = run_state["events"][cursor:]
+    done = run_state["done"]
+
+    # Clean up finished runs after client has seen all events
+    if done and cursor + len(events) >= len(run_state["events"]):
+        _runs.pop(run_id, None)
+
+    return {"events": events, "done": done}
