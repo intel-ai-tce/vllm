@@ -1,5 +1,7 @@
 import asyncio
 import json
+import os
+import subprocess
 import uuid
 from typing import AsyncGenerator, Dict, Any, List
 
@@ -86,6 +88,42 @@ INDEX_HTML = '''
       .logo-container img {
         height: 30px;
       }
+
+      /* Tech stack section */
+      .sysinfo-bar {
+        margin-bottom: 18px;
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: stretch;
+      }
+      .sysinfo-card {
+        flex: 1;
+        min-width: 180px;
+        border-radius: 14px;
+        padding: 12px 16px;
+        background: linear-gradient(180deg, #f8fafc, #ffffff);
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,.04);
+      }
+      .sysinfo-card .label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+        margin-bottom: 4px;
+      }
+      .sysinfo-card .value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+      .sysinfo-card .sub {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 2px;
+      }
     </style>
   </head>
   <body>
@@ -99,6 +137,8 @@ INDEX_HTML = '''
       <span id="mode" class="pill">mode: ...</span>
       <span id="routing" class="pill">routing: researcher/reviewer&rarr;CPU, writer&rarr;GPU</span>
     </div>
+
+    <div id="sysinfo" class="sysinfo-bar" style="display:none;"></div>
 
     <div class="row">
       <div class="panel researcher">
@@ -117,10 +157,9 @@ INDEX_HTML = '''
 
     <div id="log"></div>
 
-    <!-- Logos -->
+    <!-- Logo -->
     <div class="logo-container">
       <img src="/static/intel_logo.png">
-      <img src="/static/supermicro_logo.png">
     </div>
 
     <script>
@@ -238,6 +277,29 @@ INDEX_HTML = '''
       };
 
       fetchMode();
+
+      // Fetch and render hardware info
+      (async () => {
+        try {
+          const r = await fetch("/sysinfo");
+          const info = await r.json();
+          const bar = document.getElementById("sysinfo");
+          const cards = [
+            {label: "Azure Instance", value: info.vm_size || "N/A", sub: ""},
+            {label: "CPU", value: info.cpu_model, sub: info.cpu_cores + " cores / " + info.numa_nodes + " NUMA nodes"},
+            {label: "GPU", value: info.gpu_name || "N/A", sub: info.gpu_vram || ""},
+            {label: "Memory", value: info.ram_total, sub: ""},
+          ];
+          bar.innerHTML = cards.map(c =>
+            '<div class="sysinfo-card">' +
+              '<div class="label">' + c.label + '</div>' +
+              '<div class="value">' + c.value + '</div>' +
+              (c.sub ? '<div class="sub">' + c.sub + '</div>' : '') +
+            '</div>'
+          ).join("");
+          bar.style.display = "flex";
+        } catch(e) { /* silently skip if sysinfo unavailable */ }
+      })();
     </script>
   </body>
 </html>
@@ -251,6 +313,59 @@ def index():
     html = html.replace("{{CPU_MODEL}}", cfg.cpu_model.split("/")[-1])
     html = html.replace("{{GPU_MODEL}}", cfg.gpu_model.split("/")[-1])
     return html
+
+
+def _run(cmd: str) -> str:
+    """Run a shell command and return stripped stdout, or '' on failure."""
+    try:
+        return subprocess.check_output(cmd, shell=True, text=True, timeout=5).strip()
+    except Exception:
+        return ""
+
+
+_sysinfo_cache: Dict[str, Any] | None = None
+
+
+@app.get("/sysinfo")
+def sysinfo():
+    """Return hardware specs (cached after first call)."""
+    global _sysinfo_cache
+    if _sysinfo_cache is not None:
+        return _sysinfo_cache
+
+    cpu_model = _run("lscpu | grep 'Model name' | sed 's/.*: *//'")
+    cpu_cores = _run("lscpu | grep '^CPU(s):' | awk '{print $2}'")
+    numa_nodes = _run("lscpu | grep 'NUMA node(s)' | awk -F: '{print $2}' | tr -d ' '")
+    ram_bytes = _run("grep MemTotal /proc/meminfo | awk '{print $2}'")
+    try:
+        ram_total = f"{int(ram_bytes) // (1024 * 1024)} GB"
+    except (ValueError, TypeError):
+        ram_total = ram_bytes
+
+    gpu_name = _run(
+        "nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1"
+    )
+    gpu_vram = _run(
+        "nvidia-smi --query-gpu=memory.total --format=csv,noheader 2>/dev/null | head -1"
+    )
+
+    # Azure VM size via Instance Metadata Service
+    vm_size = _run(
+        "curl -s -H 'Metadata: true'"
+        " 'http://169.254.169.254/metadata/instance/compute/vmSize"
+        "?api-version=2021-02-01&format=text'"
+    )
+
+    _sysinfo_cache = {
+        "cpu_model": cpu_model or "unknown",
+        "cpu_cores": cpu_cores or "?",
+        "numa_nodes": numa_nodes or "?",
+        "ram_total": ram_total or "unknown",
+        "gpu_name": gpu_name or None,
+        "gpu_vram": gpu_vram or None,
+        "vm_size": vm_size or None,
+    }
+    return _sysinfo_cache
 
 
 @app.get("/mode")
