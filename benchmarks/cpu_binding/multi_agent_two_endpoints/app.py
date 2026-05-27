@@ -285,6 +285,7 @@ INDEX_HTML = '''
           const info = await r.json();
           const bar = document.getElementById("sysinfo");
           const cards = [
+            {label: "Azure Instance", value: info.vm_size || "N/A", sub: ""},
             {label: "CPU", value: info.cpu_model, sub: info.cpu_cores + " cores / " + info.numa_nodes + " NUMA nodes"},
             {label: "GPU", value: info.gpu_name || "N/A", sub: info.gpu_vram || ""},
             {label: "Memory", value: info.ram_total, sub: ""},
@@ -348,6 +349,13 @@ def sysinfo():
         "nvidia-smi --query-gpu=memory.total --format=csv,noheader 2>/dev/null | head -1"
     )
 
+    # Azure VM size via Instance Metadata Service
+    vm_size = _run(
+        "curl -s -H 'Metadata: true'"
+        " 'http://169.254.169.254/metadata/instance/compute/vmSize"
+        "?api-version=2021-02-01&format=text'"
+    )
+
     _sysinfo_cache = {
         "cpu_model": cpu_model or "unknown",
         "cpu_cores": cpu_cores or "?",
@@ -355,6 +363,7 @@ def sysinfo():
         "ram_total": ram_total or "unknown",
         "gpu_name": gpu_name or None,
         "gpu_vram": gpu_vram or None,
+        "vm_size": vm_size or None,
     }
     return _sysinfo_cache
 
