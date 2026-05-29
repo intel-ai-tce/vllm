@@ -45,7 +45,7 @@ This step verifies:
 Run:
 
 ```bash
-docker compose --profile check up --abort-on-container-exit
+docker compose --progress=plain --profile check up --abort-on-container-exit
 ```
 
 Example results when PCT is enabled successfully.
@@ -103,7 +103,7 @@ The setup script automatically performs the following actions:
 Run the setup:
 
 ```bash
-docker compose --profile set up --abort-on-container-exit
+docker compose --progress=plain --profile set up --abort-on-container-exit
 ```
 
 Example results when PCT is set successfully based on power-domains.
