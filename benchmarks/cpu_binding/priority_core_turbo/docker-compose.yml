@@ -17,6 +17,7 @@ x-intel-speed-select-base: &base
     - /sys:/sys
     - "${PWD}/check_pct_status.sh:/workspace/check_pct_status.sh:ro"
     - "${PWD}/pct_map_and_set_clos.sh:/workspace/pct_map_and_set_clos.sh:ro"
+    - "${PWD}/run_pct_benchmark.sh:/workspace/run_pct_benchmark.sh:ro"
     - "${PWD}/results:/workspace/benchmarks/results"
   environment:
     http_proxy: ${http_proxy}
@@ -40,6 +41,11 @@ services:
     <<: *base
     profiles: ["unset"]
     command: ["ACTION=unset bash /workspace/pct_map_and_set_clos.sh"]
+
+  intel-speed-select-benchmark:
+    <<: *base
+    profiles: ["benchmark"]
+    command: ["bash /workspace/run_pct_benchmark.sh"]
 
   intel-speed-select-shell:
     <<: *base
