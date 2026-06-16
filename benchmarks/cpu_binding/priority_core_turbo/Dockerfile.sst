@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     git \
     make \
+    wget \
+    tar \
     gcc \
     g++ \
     libc6-dev \
@@ -39,6 +41,15 @@ RUN git clone --depth 1 --branch ${KERNEL_TAG} https://github.com/torvalds/linux
 # Build only intel-speed-select
 WORKDIR /opt/linux/tools/power/x86/intel-speed-select
 RUN make -j"$(nproc)" && make install
+
+# Install the latest pre-built Intel PerfSpect release.
+# PerfSpect provides the `perfspect benchmark` command used by the
+# docker compose benchmark profile.
+WORKDIR /opt
+RUN wget -qO- https://github.com/intel/PerfSpect/releases/latest/download/perfspect.tgz | tar -xz && \
+    test -x /opt/perfspect/perfspect && \
+    ln -sf /opt/perfspect/perfspect /usr/local/bin/perfspect && \
+    perfspect --help >/dev/null
 
 # No ENTRYPOINT so docker compose can run arbitrary commands (bash, etc.)
 CMD ["intel-speed-select", "--help"]
