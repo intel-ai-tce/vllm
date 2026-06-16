@@ -210,18 +210,6 @@ which perfspect
 perfspect --help | head
 ```
 
-If the benchmark reports missing helper tools, install common host dependencies:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y linux-tools-common linux-tools-$(uname -r) msr-tools
-```
-
-Load the MSR kernel module when needed:
-
-```bash
-sudo modprobe msr
-```
 
 Run the full flow:
 
