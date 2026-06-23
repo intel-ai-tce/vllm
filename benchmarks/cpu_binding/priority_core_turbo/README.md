@@ -18,20 +18,20 @@ Validated platforms:
 PCT relies on **two Intel Speed Select features**:
 
 - **SST-TF (Turbo Frequency)**
-  Defines how many cores are allowed to run at higher turbo frequencies (HP cores).
+  Defines the high-priority turbo buckets and the number of physical cores that can use each bucket.
 
 - **SST-CP (Core Power / CLOS)**
   Assigns CPUs to **Classes of Service (CLOS)**.
-  Only CPUs assigned to **CLOS0** are treated as **High-Priority** by PCT.
+  CPUs assigned to **CLOS0** are treated as **High-Priority** by PCT.
 
-> **Important:** PCT is only effective when CPUs are explicitly assigned to **CLOS0**.
+> **Important:** PCT is only effective when CPUs are explicitly assigned to **CLOS0** and Core Power / CLOS is enabled.
 
 ### PCT bucket-count interpretation
 
 `intel-speed-select turbo-freq info -l <level>` may print the same `bucket-0`,
 `bucket-1`, and `bucket-2` SST-TF table under multiple `powerdomain-*` anchors.
 
-For PCT capacity, this flow counts `bucket-0` **once per package/socket**:
+For PCT **capacity**, this flow counts `bucket-0` **once per package/socket**:
 
 ```text
 bucket-0 high-priority-cores-count:8 @ 4600 MHz
@@ -45,6 +45,48 @@ On a two-socket Intel® Xeon® 6776P system with Hyper-Threading enabled:
 16 physical PCT cores × 2 threads/core    = 32 logical PCT CPUs total
 ```
 
+### Capacity versus placement
+
+There are two different concepts:
+
+| Concept | Correct model |
+| --- | --- |
+| **PCT capacity** | Count `bucket-0` once per package/socket |
+| **HP CPU placement** | Dispatch the package-level PCT core budget across the package's PCT reporting powerdomain anchors |
+
+For Intel® Xeon® 6776P system, `bucket-0` reports:
+
+```text
+PCT_CORES_PER_PACKAGE=8
+PCT_ACTIVE_PACKAGES=2
+PCT_TOTAL_PHYSICAL_CORES=16
+THREADS_PER_CORE=2
+PCT_TOTAL_LOGICAL_CPUS=32
+```
+
+But the `turbo-freq` output shows two reporting anchors per package:
+
+```text
+package 0: anchor cpu0,  anchor cpu32
+package 1: anchor cpu64, anchor cpu96
+```
+
+Therefore, the set script dispatches the **8 physical PCT cores per package**
+across the package's two reporting anchors:
+
+```text
+package 0: 4 physical cores from cpu0  + 4 physical cores from cpu32
+package 1: 4 physical cores from cpu64 + 4 physical cores from cpu96
+```
+
+With Hyper-Threading included, this becomes:
+
+```text
+0-3,32-35,64-67,96-99,128-131,160-163,192-195,224-227
+```
+
+This is the default strict bucket-0 PCT placement used by the updated set script.
+
 ## 1. Build the Environment
 
 Export the kernel build variables first:
@@ -52,20 +94,6 @@ Export the kernel build variables first:
 ```bash
 source ./set_kernel_env.sh
 ```
-
-Expected on a Linux `6.8.0-*` host:
-
-```text
-Exported KERNEL_MM=6.8
-Exported KERNEL_TAG=v6.8
-```
-
-These variables are used by `docker-compose.yml`:
-
-| Variable | Example | Purpose |
-| --- | --- | --- |
-| `KERNEL_MM` | `6.8` | Docker image tag suffix |
-| `KERNEL_TAG` | `v6.8` | Linux kernel git tag used to build `intel-speed-select` |
 
 Build the Docker image with required tools:
 
@@ -135,12 +163,12 @@ CPU -> CLOS Mapping via get-assoc
 ------------------------------------------------------------
 CLOS distribution (count by clos id):
   clos:0 -> 32 CPUs
-  clos:3 -> 224 CPUs
+  clos:2 -> 224 CPUs
 
 ------------------------------------------------------------
 CPU list for TARGET_CLOS=0
 ------------------------------------------------------------
-clos:0 CPU list: 0,8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128,136,144,152,160,168,176,184,192,200,208,216,224,232,240,248
+clos:0 CPU list: 0-3,32-35,64-67,96-99,128-131,160-163,192-195,224-227
 Wrote clos:0 CPU list to /workspace/benchmarks/results/clos0_cpulist.txt
 
 ------------------------------------------------------------
@@ -181,20 +209,33 @@ Hyper-Threading enabled, that corresponds to 16 physical PCT cores.
 > show CPU-to-CLOS mappings even when `core-power info` reports Core Power or
 > CLOS disabled. For PCT benchmarking, ensure both Core Power and CLOS are enabled.
 
-## 3. Set PCT (Assign CPUs to CLOS0)
+## 3. Set PCT (Dispatch Package-Level PCT Cores Across Powerdomain Anchors)
 
-This step **activates PCT in practice** by assigning CPUs to the correct
-**Class of Service (CLOS)**.
+This step **activates PCT in practice** by assigning selected HP CPUs to **CLOS0**.
 
-The setup script automatically performs the following actions:
+The setup script intentionally **overwrites existing BIOS/runtime CLOS settings**:
 
-- Detects how many **High-Priority (HP) cores** are supported by the platform
-  (from Intel Speed Select bucket data)
-- Selects HP CPUs according to the script's mapping policy
-- Expands the HP set to include **Hyper-Threading siblings** when required
+1. Enable Core Power / CLOS.
+2. Move **all online CPUs → `OTHER_CLOS`**.
+3. Move selected HP CPUs → `HP_CLOS`.
+
+This prevents stale BIOS or previous runtime CLOS assignments from leaving unexpected
+CPUs in CLOS0.
+
+### Set-script behavior
+
+The setup script performs the following actions:
+
+- Detects PCT capacity from `intel-speed-select turbo-freq info -l <TDP_LEVEL>`.
+- Counts `bucket-0` once per package/socket.
+- Derives `HP_PER_PACKAGE` from `PCT_CORES_PER_PACKAGE` unless overridden.
+- Reads the PCT reporting anchors from `PCT_DOMAIN_ANCHORS`.
+- Dispatches each package's `HP_PER_PACKAGE` physical-core budget across that package's reporting powerdomain anchors.
+- Selects contiguous physical CPUs starting from each reporting anchor CPU.
+- Includes Hyper-Threading siblings by default with `INCLUDE_HT=1`.
 - Assigns:
-    - **HP CPUs → CLOS0** (eligible for Priority Core Turbo)
-    - **All remaining CPUs → CLOS2/CLOS3** depending on script configuration
+    - **Selected HP CPUs → CLOS0** by default
+    - **All remaining CPUs → CLOS2** by default
 
 Run the setup:
 
@@ -202,38 +243,69 @@ Run the setup:
 docker compose --progress=plain --profile set up --abort-on-container-exit
 ```
 
-Example results when PCT is set successfully based on power-domains.
+Or test the selection without changing the system:
+
+```bash
+DRY_RUN=1 docker compose --progress=plain --profile set up --abort-on-container-exit
+```
+
+### Example: package capacity dispatched across reporting powerdomain anchors
+
+Latest validated output:
 
 ```bash
 intel-speed-select-set-1  | ------------------------------------------------------------
+intel-speed-select-set-1  | PCT capacity from SST-TF bucket-0
+intel-speed-select-set-1  | ------------------------------------------------------------
+intel-speed-select-set-1  | PCT_BUCKET=bucket-0
+intel-speed-select-set-1  | PCT_REPORTING_ANCHORS=4
+intel-speed-select-set-1  | PCT_ACTIVE_PACKAGES=2
+intel-speed-select-set-1  | PCT_CORES_PER_PACKAGE=8
+intel-speed-select-set-1  | PCT_TOTAL_PHYSICAL_CORES=16
+intel-speed-select-set-1  | PCT_MAX_FREQ_MHZ=4600
+intel-speed-select-set-1  | PCT_DOMAIN_ANCHORS=pkg0/die0/pd0/cpu0:cores8:freq4600,pkg0/die0/pd1/cpu32:cores8:freq4600,pkg1/die1/pd0/cpu64:cores8:freq4600,pkg1/die1/pd1/cpu96:cores8:freq4600
+intel-speed-select-set-1  | PCT_PACKAGE_SUMMARY=pkg0:cores8:freq4600:anchors2,pkg1:cores8:freq4600:anchors2
+intel-speed-select-set-1  |
+intel-speed-select-set-1  | ------------------------------------------------------------
 intel-speed-select-set-1  | Config
 intel-speed-select-set-1  | ------------------------------------------------------------
-intel-speed-select-set-1  | HP_PER_DOMAIN=8 (HP_BUCKET=0)
-intel-speed-select-set-1  | INCLUDE_HT=0
+intel-speed-select-set-1  | ACTION=set
+intel-speed-select-set-1  | HP_BUCKET=0  TDP_LEVEL=1
+intel-speed-select-set-1  | HP_PER_PACKAGE=8
+intel-speed-select-set-1  | INCLUDE_HT=1
 intel-speed-select-set-1  | HP_CLOS=0  OTHER_CLOS=2
 intel-speed-select-set-1  | DEBUG_MODE=0  DRY_RUN=0  DEBUG_VERBOSE=0  DEBUG_MAP=0
 intel-speed-select-set-1  |
 intel-speed-select-set-1  | ------------------------------------------------------------
-intel-speed-select-set-1  | HP selection per NUMA node (initial pick)
+intel-speed-select-set-1  | Powerdomain-anchor HP CPU dispatch
 intel-speed-select-set-1  | ------------------------------------------------------------
-intel-speed-select-set-1  | node 0 -> 0 1 2 3 4 5 6 7
-intel-speed-select-set-1  | node 1 -> 32 33 34 35 36 37 38 39
-intel-speed-select-set-1  | node 2 -> 64 65 66 67 68 69 70 71
-intel-speed-select-set-1  | node 3 -> 96 97 98 99 100 101 102 103
-intel-speed-select-set-1  |
-intel-speed-select-set-1  | HP initial ranges      : 0-7,32-39,64-71,96-103
-intel-speed-select-set-1  | HP effective (with HT) : 0-7,32-39,64-71,96-103,128-135,160-167,192-199,224-231
-intel-speed-select-set-1  |
+intel-speed-select-set-1  | package 0: HP_PER_PACKAGE=8, reporting_anchors=2, dispatch_per_anchor=[4, 4]
+intel-speed-select-set-1  |   pkg0/pd0/anchor_cpu0 -> 4 physical cores -> core0:0/128 core1:1/129 core2:2/130 core3:3/131
+intel-speed-select-set-1  |   pkg0/pd1/anchor_cpu32 -> 4 physical cores -> core32:32/160 core33:33/161 core34:34/162 core35:35/163
+intel-speed-select-set-1  | package 1: HP_PER_PACKAGE=8, reporting_anchors=2, dispatch_per_anchor=[4, 4]
+intel-speed-select-set-1  |   pkg1/pd0/anchor_cpu64 -> 4 physical cores -> core64:64/192 core65:65/193 core66:66/194 core67:67/195
+intel-speed-select-set-1  |   pkg1/pd1/anchor_cpu96 -> 4 physical cores -> core96:96/224 core97:97/225 core98:98/226 core99:99/227
+intel-speed-select-set-1  | HP_EFFECTIVE=0-3,32-35,64-67,96-99,128-131,160-163,192-195,224-227
 intel-speed-select-set-1  | ------------------------------------------------------------
 intel-speed-select-set-1  | Computed CPU lists
 intel-speed-select-set-1  | ------------------------------------------------------------
-intel-speed-select-set-1  | HP (effective) : 0-7,32-39,64-71,96-103,128-135,160-167,192-199,224-231
-intel-speed-select-set-1  | Non-HP         : 8-31,40-63,72-95,104-127,136-159,168-191,200-223,232-255
+intel-speed-select-set-1  | HP effective      : 0-3,32-35,64-67,96-99,128-131,160-163,192-195,224-227
+intel-speed-select-set-1  | HP CPU count      : 32
+intel-speed-select-set-1  | Non-HP            : 4-31,36-63,68-95,100-127,132-159,164-191,196-223,228-255
+intel-speed-select-set-1  |
+intel-speed-select-set-1  | PCT active packages/sockets       : 2
+intel-speed-select-set-1  | PCT reporting anchors             : 4
+intel-speed-select-set-1  | PCT cores per package/socket      : 8
+intel-speed-select-set-1  | PCT physical core budget          : 16
+intel-speed-select-set-1  | PCT max frequency                 : 4600 MHz
+intel-speed-select-set-1  |
+intel-speed-select-set-1  | Expected HP CPU count for this INCLUDE_HT setting: 32
 intel-speed-select-set-1  |
 intel-speed-select-set-1  | ------------------------------------------------------------
-intel-speed-select-set-1  | Apply CLOS assignments (quiet)
+intel-speed-select-set-1  | Apply CLOS assignments (overwrite existing BIOS/runtime mapping)
 intel-speed-select-set-1  | ------------------------------------------------------------
-intel-speed-select-set-1  | Setting HP -> CLOS0, Non-HP -> CLOS2
+intel-speed-select-set-1  | Setting ALL CPUs -> CLOS2 first
+intel-speed-select-set-1  | Setting selected HP CPUs -> CLOS0
 intel-speed-select-set-1  | Applied.
 intel-speed-select-set-1  |
 intel-speed-select-set-1  | ------------------------------------------------------------
@@ -241,14 +313,30 @@ intel-speed-select-set-1  | Verification (concise CPU->CLOS)
 intel-speed-select-set-1  | ------------------------------------------------------------
 intel-speed-select-set-1  | HP list should be clos:0
 intel-speed-select-set-1  | cpu-0 clos:0
-intel-speed-select-set-1  | … (showing first 40 lines)
+intel-speed-select-set-1  | cpu-1 clos:0
+intel-speed-select-set-1  | … (showing first 2 lines)
 intel-speed-select-set-1  |
 intel-speed-select-set-1  | Non-HP list should be clos:2
-intel-speed-select-set-1  | cpu-8 clos:2
-intel-speed-select-set-1  | … (showing first 40 lines)
+intel-speed-select-set-1  | cpu-4 clos:2
+intel-speed-select-set-1  | cpu-5 clos:2
+intel-speed-select-set-1  | … (showing first 2 lines)
 intel-speed-select-set-1  |
 intel-speed-select-set-1  | Done.
-intel-speed-select-set-1 exited with code 0
+```
+
+After applying the set flow, run the check flow again:
+
+```bash
+docker compose --progress=plain --profile check up --abort-on-container-exit
+```
+
+The check output should show:
+
+```text
+clos:0 -> 32 CPUs
+clos:0 CPU list: 0-3,32-35,64-67,96-99,128-131,160-163,192-195,224-227
+Expected PCT logical CPU budget   : 32
+✅ CLOS0 CPU count exactly matches the bucket-0 PCT logical budget.
 ```
 
 ## 4. Benchmark CLOS0 CPUs with Host PerfSpect
@@ -256,7 +344,7 @@ intel-speed-select-set-1 exited with code 0
 Use Docker only to configure and verify PCT/CLOS. Run PerfSpect on the host so
 the frequency benchmark can access host CPU frequency interfaces directly.
 
-### prerequisites
+### Prerequisites
 
 The host benchmark script reads the CPU list generated by the check profile:
 
@@ -322,16 +410,26 @@ perfspect_benchmark.log
 perfspect/
 ```
 
-Check the Frequency Benchmark section in the generated HTML report.
+The latest strict bucket-0, powerdomain-dispatched layout produced the expected PCT behavior:
 
-A near-4.6 GHz frequency is expected only when the benchmark uses a small number
-of active PCT/high-priority cores. When more logical CPUs are active, the observed
-frequency should be compared against the active physical core count and the
-corresponding SST-TF / turbo ratio bucket.
+| Active core count | Observed SSE / AVX2 behavior |
+| --- | --- |
+| 1–8 | ~4.6 GHz |
+| 9 | ~4.3 GHz |
+| 10 | ~4.1 GHz |
+| 11–16 | Gradual drop from ~4.0 GHz to ~3.5–3.6 GHz |
 
-For PCT validation, start with `--speed --frequency --no-summary`. Avoid `--all`
-unless you intentionally want storage, memory, power, and other platform-level
-tests included in the same run.
+This is the expected pattern: small active core counts hold the highest PCT turbo
+frequency, and frequency gradually steps down as more physical cores become active.
+
+For PCT validation, start with:
+
+```bash
+perfspect benchmark --speed --frequency --no-summary
+```
+
+Avoid `--all` unless you intentionally want storage, memory, power, and other
+platform-level tests included in the same run.
 
 ## 5. Debug / Manual Inspection (Optional)
 
@@ -342,4 +440,13 @@ Start an interactive shell with the required tools installed:
 
 ```bash
 docker compose run --rm intel-speed-select-shell
+```
+
+Useful commands:
+
+```bash
+intel-speed-select --info
+intel-speed-select turbo-freq info -l 1
+intel-speed-select core-power info
+intel-speed-select -c 0 core-power get-assoc
 ```
