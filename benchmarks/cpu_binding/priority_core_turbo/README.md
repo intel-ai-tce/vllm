@@ -26,6 +26,25 @@ PCT relies on **two Intel Speed Select features**:
 
 > **Important:** PCT is only effective when CPUs are explicitly assigned to **CLOS0**.
 
+### PCT bucket-count interpretation
+
+`intel-speed-select turbo-freq info -l <level>` may print the same `bucket-0`,
+`bucket-1`, and `bucket-2` SST-TF table under multiple `powerdomain-*` anchors.
+
+For PCT capacity, this flow counts `bucket-0` **once per package/socket**:
+
+```text
+bucket-0 high-priority-cores-count:8 @ 4600 MHz
+=> 8 PCT physical cores per package/socket
+```
+
+On a two-socket Intel® Xeon® 6776P system with Hyper-Threading enabled:
+
+```text
+2 packages × 8 physical PCT cores/package = 16 physical PCT cores total
+16 physical PCT cores × 2 threads/core    = 32 logical PCT CPUs total
+```
+
 ## 1. Build the Environment
 
 Export the kernel build variables first:
@@ -65,8 +84,11 @@ docker compose run --rm intel-speed-select-shell 'which intel-speed-select && in
 This step verifies:
 
 - Hardware support for Intel® Speed Select features
-- BIOS enablement of PCT (SST-TF) and Core Power (SST-CP)
-- Whether CPUs are already assigned to **CLOS0** (required for PCT)
+- SST-TF/PCT bucket-0 capacity
+- Correct package/socket-based PCT capacity counting
+- Core Power and CLOS enablement
+- Current CPU-to-CLOS mapping
+- Whether the current `TARGET_CLOS` CPU count matches the expected PCT logical CPU budget
 
 Run:
 
@@ -74,7 +96,7 @@ Run:
 docker compose --progress=plain --profile check up --abort-on-container-exit
 ```
 
-Example results when PCT is enabled successfully.
+Example results when PCT and CLOS are enabled successfully:
 
 ```bash
 ------------------------------------------------------------
@@ -88,9 +110,19 @@ Intel(R) Speed Select Technology
 Executing on CPU model:173[0xad]
 
 ------------------------------------------------------------
-PCT (Turbo-Frequency) Feature Status
+PCT Capacity from SST-TF bucket-0
 ------------------------------------------------------------
-✅ PCT (Turbo-Frequency) data present.
+✅ PCT/SST-TF turbo tables detected.
+PCT_BUCKET=bucket-0
+PCT_REPORTING_ANCHORS=4
+PCT_ACTIVE_PACKAGES=2
+PCT_CORES_PER_PACKAGE=8
+PCT_TOTAL_PHYSICAL_CORES=16
+PCT_MAX_FREQ_MHZ=4600
+PCT_DOMAIN_ANCHORS=pkg0/die0/pd0/cpu0:cores8:freq4600,pkg0/die0/pd1/cpu32:cores8:freq4600,pkg1/die1/pd0/cpu64:cores8:freq4600,pkg1/die1/pd1/cpu96:cores8:freq4600
+PCT_PACKAGE_SUMMARY=pkg0:cores8:freq4600:anchors2,pkg1:cores8:freq4600:anchors2
+THREADS_PER_CORE=2
+PCT_TOTAL_LOGICAL_CPUS=32
 
 ------------------------------------------------------------
 Core Power (CLOS) Feature Status
@@ -99,17 +131,55 @@ Core Power (CLOS) Feature Status
 ✅ CLOS ENABLED
 
 ------------------------------------------------------------
+CPU -> CLOS Mapping via get-assoc
+------------------------------------------------------------
+CLOS distribution (count by clos id):
+  clos:0 -> 32 CPUs
+  clos:3 -> 224 CPUs
+
+------------------------------------------------------------
 CPU list for TARGET_CLOS=0
 ------------------------------------------------------------
-clos:0 CPU list: 0-7,32-39,64-71,96-103,128-135,160-167,192-199,224-231
+clos:0 CPU list: 0,8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128,136,144,152,160,168,176,184,192,200,208,216,224,232,240,248
+Wrote clos:0 CPU list to /workspace/benchmarks/results/clos0_cpulist.txt
+
+------------------------------------------------------------
+PCT Budget Validation for CLOS0
+------------------------------------------------------------
+CLOS0 CPU count             : 32
+PCT bucket                        : bucket-0
+PCT reporting anchors             : 4
+PCT active packages/sockets       : 2
+PCT cores per package/socket      : 8
+PCT physical core budget          : 16
+PCT max frequency                 : 4600 MHz
+Threads per core                  : 2
+Expected PCT logical CPU budget   : 32
+✅ CLOS0 CPU count exactly matches the bucket-0 PCT logical budget.
 
 ------------------------------------------------------------
 Summary
 ------------------------------------------------------------
-✅ PCT turbo tables detected (turbo-freq reports high-priority data)
+✅ PCT turbo tables detected
+✅ PCT capacity detected: 16 physical HP cores total, 32 logical CPUs with HT=2
+   Count model: bucket-0 counted once per package/socket, not once per powerdomain anchor.
 ✅ Core Power enabled
 ✅ CLOS enabled
+Done.
 ```
+
+The check script writes the current target-CLOS CPU list to:
+
+```text
+./results/clos0_cpulist.txt
+```
+
+For the example above, `clos0_cpulist.txt` contains 32 logical CPUs. With
+Hyper-Threading enabled, that corresponds to 16 physical PCT cores.
+
+> **Note:** CLOS assignment and CLOS enforcement are different. `get-assoc` may
+> show CPU-to-CLOS mappings even when `core-power info` reports Core Power or
+> CLOS disabled. For PCT benchmarking, ensure both Core Power and CLOS are enabled.
 
 ## 3. Set PCT (Assign CPUs to CLOS0)
 
@@ -119,12 +189,12 @@ This step **activates PCT in practice** by assigning CPUs to the correct
 The setup script automatically performs the following actions:
 
 - Detects how many **High-Priority (HP) cores** are supported by the platform
-  (from `intel-speed-select perf-profile info`)
-- Selects HP cores **per NUMA node** to maintain locality
+  (from Intel Speed Select bucket data)
+- Selects HP CPUs according to the script's mapping policy
 - Expands the HP set to include **Hyper-Threading siblings** when required
 - Assigns:
     - **HP CPUs → CLOS0** (eligible for Priority Core Turbo)
-    - **All remaining CPUs → CLOS2** (non-HP cores)
+    - **All remaining CPUs → CLOS2/CLOS3** depending on script configuration
 
 Run the setup:
 
@@ -186,7 +256,8 @@ intel-speed-select-set-1 exited with code 0
 Use Docker only to configure and verify PCT/CLOS. Run PerfSpect on the host so
 the frequency benchmark can access host CPU frequency interfaces directly.
 
-### prerequisites 
+### prerequisites
+
 The host benchmark script reads the CPU list generated by the check profile:
 
 ```bash
@@ -212,6 +283,7 @@ perfspect --help | head
 ```
 
 ### Run the benchmark
+
 Run the full flow:
 
 ```bash
@@ -250,10 +322,12 @@ perfspect_benchmark.log
 perfspect/
 ```
 
-Check the Frequency Benchmark Section like below diagram in the html file.    
-<img width="846" height="509" alt="image" src="https://github.com/user-attachments/assets/d04b883f-0d55-47e1-aa71-dd69f11127b0" /> 
+Check the Frequency Benchmark section in the generated HTML report.
 
-4.6Ghz frequency is expected when it uses small number of CPU cores.  
+A near-4.6 GHz frequency is expected only when the benchmark uses a small number
+of active PCT/high-priority cores. When more logical CPUs are active, the observed
+frequency should be compared against the active physical core count and the
+corresponding SST-TF / turbo ratio bucket.
 
 For PCT validation, start with `--speed --frequency --no-summary`. Avoid `--all`
 unless you intentionally want storage, memory, power, and other platform-level
