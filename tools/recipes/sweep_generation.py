@@ -14,6 +14,8 @@ from typing import Any
 
 from runtime_tuning import WorkloadHints
 
+SUPPORTED_TENSOR_PARALLEL_SIZES = frozenset({1, 2, 4, 8})
+
 
 def _positive_int(config: dict[str, Any], key: str) -> int:
     value = config.get(key)
@@ -151,7 +153,10 @@ def build_parallel_layout_params(
 
     candidates = []
     for tensor_parallel_size in range(numa_node_count, 0, -1):
-        if numa_node_count % tensor_parallel_size:
+        if (
+            tensor_parallel_size not in SUPPORTED_TENSOR_PARALLEL_SIZES
+            or numa_node_count % tensor_parallel_size
+        ):
             continue
         data_parallel_size = numa_node_count // tensor_parallel_size
         max_num_seqs, max_num_batched_tokens = _scheduler_baseline_for_dp(
@@ -505,6 +510,8 @@ All parallel-layout candidates use every effective NUMA node:
 ```text
 tensor_parallel_size * data_parallel_size = {numa_node_count}
 ```
+
+Tensor parallelism is restricted to `1`, `2`, `4`, or `8`.
 
 Run the TP/DP scan first:
 

@@ -124,7 +124,8 @@ To compare parallel layouts before scheduler tuning, use
 `--generate-parallel-layout-sweep` instead. Hardware detection supplies the
 effective NUMA-node count. The first stage generates every factor pair where
 `tensor-parallel-size * data-parallel-size` equals that count; the second stage
-tunes the scheduler around the selected layout.
+tunes the scheduler around the selected layout. Generated TP values are limited
+to the supported set `1, 2, 4, 8`.
 
 ## Start vLLM
 
