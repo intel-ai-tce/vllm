@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import shlex
 from pathlib import Path
@@ -112,6 +113,62 @@ def build_serve_params(config: dict[str, Any]) -> list[dict[str, Any]]:
     return candidates
 
 
+def _scheduler_baseline_for_dp(
+    config: dict[str, Any], workload: WorkloadHints, data_parallel_size: int
+) -> tuple[int, int]:
+    """Return per-replica scheduler settings for a DP layout."""
+    assert workload.concurrency is not None
+    assert workload.input_tokens is not None
+    per_replica_concurrency = math.ceil(workload.concurrency / data_parallel_size)
+    output_tokens = workload.output_tokens or 1
+    prefills_per_step = max(1.0, per_replica_concurrency / output_tokens)
+    if workload.target_qps is not None and workload.tpot_sla_ms is not None:
+        per_replica_qps = workload.target_qps / data_parallel_size
+        prefills_per_step = max(
+            prefills_per_step,
+            per_replica_qps * workload.tpot_sla_ms / 1000.0,
+        )
+    prefills_per_step = min(float(per_replica_concurrency), prefills_per_step)
+    batch = max(
+        2048,
+        per_replica_concurrency,
+        per_replica_concurrency + math.ceil(workload.input_tokens * prefills_per_step),
+    )
+    if config.get("enable-chunked-prefill") is False:
+        max_model_len = config.get("max-model-len")
+        if isinstance(max_model_len, int) and not isinstance(max_model_len, bool):
+            batch = max(batch, max_model_len)
+    return per_replica_concurrency, batch
+
+
+def build_parallel_layout_params(
+    config: dict[str, Any], workload: WorkloadHints, numa_node_count: int
+) -> list[dict[str, Any]]:
+    """Build TP/DP layouts that use every effective NUMA node."""
+    validate_sweep_workload(workload)
+    if numa_node_count <= 1:
+        raise ValueError("Parallel-layout sweep requires at least two NUMA nodes.")
+
+    candidates = []
+    for tensor_parallel_size in range(numa_node_count, 0, -1):
+        if numa_node_count % tensor_parallel_size:
+            continue
+        data_parallel_size = numa_node_count // tensor_parallel_size
+        max_num_seqs, max_num_batched_tokens = _scheduler_baseline_for_dp(
+            config, workload, data_parallel_size
+        )
+        candidates.append(
+            {
+                "_benchmark_name": (f"tp{tensor_parallel_size}_dp{data_parallel_size}"),
+                "tensor_parallel_size": tensor_parallel_size,
+                "data_parallel_size": data_parallel_size,
+                "max_num_seqs": max_num_seqs,
+                "max_num_batched_tokens": max_num_batched_tokens,
+            }
+        )
+    return candidates
+
+
 def build_bench_params(workload: WorkloadHints) -> list[dict[str, Any]]:
     validate_sweep_workload(workload)
     assert workload.input_tokens is not None
@@ -165,6 +222,8 @@ def _write_run_script(
     request_model: str,
     tokenizer: str,
     workload: WorkloadHints,
+    serve_params_name: str = "serve_params.json",
+    experiment_name: str = "runtime-tuning",
 ) -> None:
     bench_parts = [
         "vllm bench serve",
@@ -200,10 +259,10 @@ source "${{ENV_PATH}}"
 vllm bench sweep serve \
   --serve-cmd "vllm serve --config '${{CONFIG_PATH}}'" \
   --bench-cmd "{bench_cmd}" \
-  --serve-params "${{SCRIPT_DIR}}/serve_params.json" \
+  --serve-params "${{SCRIPT_DIR}}/{serve_params_name}" \
   --bench-params "${{SCRIPT_DIR}}/bench_params.json" \
   --output-dir "${{SCRIPT_DIR}}/results" \
-  --experiment-name runtime-tuning \
+  --experiment-name {experiment_name} \
   "$@"
 """
     path.write_text(script, encoding="utf-8")
@@ -216,6 +275,9 @@ def _write_recommend_script(
     config_rel: str,
     env_rel: str,
     workload: WorkloadHints,
+    results_dir: str = "results/runtime-tuning",
+    output_config: str = "recommended-config.yml",
+    output_json: str = "recommendation.json",
 ) -> None:
     template_path = Path(__file__).with_name("sweep_recommendation.py")
     source = template_path.read_text(encoding="utf-8")
@@ -232,6 +294,15 @@ def _write_recommend_script(
         ),
         "DEFAULT_TPOT_SLA_MS: float | None = None": (
             f"DEFAULT_TPOT_SLA_MS: float | None = {workload.tpot_sla_ms!r}"
+        ),
+        'DEFAULT_RESULTS_DIR = "results/runtime-tuning"': (
+            f"DEFAULT_RESULTS_DIR = {results_dir!r}"
+        ),
+        'DEFAULT_OUTPUT_CONFIG = "recommended-config.yml"': (
+            f"DEFAULT_OUTPUT_CONFIG = {output_config!r}"
+        ),
+        'DEFAULT_OUTPUT_JSON = "recommendation.json"': (
+            f"DEFAULT_OUTPUT_JSON = {output_json!r}"
         ),
     }
     for marker, replacement in replacements.items():
@@ -356,3 +427,115 @@ def write_sweep_files(
     _write_guide(guide, workload)
 
     return [serve_params, bench_params, run_script, recommend_script, guide]
+
+
+def write_parallel_layout_sweep_files(
+    output_dir: str,
+    *,
+    config_path: str,
+    env_path: str,
+    config: dict[str, Any],
+    workload: WorkloadHints,
+    numa_node_count: int,
+) -> list[Path]:
+    """Write a TP/DP scan followed by the scheduler sweep package."""
+    validate_sweep_workload(workload)
+    directory = Path(output_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+
+    parallel_params = directory / "parallel_layout_serve_params.json"
+    scheduler_params = directory / "serve_params.json"
+    bench_params = directory / "bench_params.json"
+    run_parallel = directory / "run_parallel_layout_sweep.sh"
+    recommend_parallel = directory / "recommend_parallel_layout.py"
+    run_scheduler = directory / "run_sweep.sh"
+    recommend_scheduler = directory / "recommend.py"
+    guide = directory / "SWEEP.md"
+
+    initial_config_rel = _relative_to(directory, config_path)
+    selected_config_rel = "parallel-layout-config.yml"
+    env_rel = _relative_to(directory, env_path)
+    request_model, tokenizer = _benchmark_models(config)
+
+    _write_json(
+        parallel_params,
+        build_parallel_layout_params(config, workload, numa_node_count),
+    )
+    _write_json(scheduler_params, build_serve_params(config))
+    _write_json(bench_params, build_bench_params(workload))
+    _write_run_script(
+        run_parallel,
+        config_rel=initial_config_rel,
+        env_rel=env_rel,
+        request_model=request_model,
+        tokenizer=tokenizer,
+        workload=workload,
+        serve_params_name=parallel_params.name,
+        experiment_name="parallel-layout",
+    )
+    _write_recommend_script(
+        recommend_parallel,
+        config_rel=initial_config_rel,
+        env_rel=env_rel,
+        workload=workload,
+        results_dir="results/parallel-layout",
+        output_config=selected_config_rel,
+        output_json="parallel-layout-recommendation.json",
+    )
+    _write_run_script(
+        run_scheduler,
+        config_rel=selected_config_rel,
+        env_rel=env_rel,
+        request_model=request_model,
+        tokenizer=tokenizer,
+        workload=workload,
+    )
+    _write_recommend_script(
+        recommend_scheduler,
+        config_rel=selected_config_rel,
+        env_rel=env_rel,
+        workload=workload,
+    )
+
+    guide.write_text(
+        f"""# Staged Parallel-Layout and Scheduler Sweep
+
+All parallel-layout candidates use every effective NUMA node:
+
+```text
+tensor_parallel_size * data_parallel_size = {numa_node_count}
+```
+
+Run the TP/DP scan first:
+
+```bash
+./run_parallel_layout_sweep.sh --dry-run
+./run_parallel_layout_sweep.sh
+./recommend_parallel_layout.py --results-dir results/parallel-layout
+```
+
+The recommender writes `parallel-layout-config.yml`. Then tune
+`max-num-seqs` and `max-num-batched-tokens` around the selected layout:
+
+```bash
+./run_sweep.sh --dry-run
+./run_sweep.sh
+./recommend.py
+```
+
+Both recommenders require the supplied P99 objectives and combined compliance
+when latency objectives are present, then maximize aggregate output throughput.
+""",
+        encoding="utf-8",
+    )
+
+    return [
+        parallel_params,
+        scheduler_params,
+        bench_params,
+        run_parallel,
+        recommend_parallel,
+        run_scheduler,
+        recommend_scheduler,
+        guide,
+    ]

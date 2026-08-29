@@ -120,6 +120,12 @@ python3 tools/recipes/recipe_json_to_vllm_config.py \
 See [SWEEP_TUNING.md](SWEEP_TUNING.md) for the benchmark, recommendation, and
 vLLM CPU Docker-shell workflow.
 
+To compare parallel layouts before scheduler tuning, use
+`--generate-parallel-layout-sweep` instead. Hardware detection supplies the
+effective NUMA-node count. The first stage generates every factor pair where
+`tensor-parallel-size * data-parallel-size` equals that count; the second stage
+tunes the scheduler around the selected layout.
+
 ## Start vLLM
 
 ```bash

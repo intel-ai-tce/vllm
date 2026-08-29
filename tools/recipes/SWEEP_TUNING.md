@@ -36,6 +36,45 @@ plus lower/higher batch interactions at three-quarters and one-half of that
 count. This gives broader coverage than a one-parameter-at-a-time sweep without
 the cost of a full Cartesian grid.
 
+## Staged Parallel-Layout Sweep
+
+Use this mode when TP/DP layout should be measured before scheduler tuning:
+
+```bash
+python3 tools/recipes/recipe_json_to_vllm_config.py \
+  --model meta-llama/Llama-3.1-8B-Instruct \
+  --hardware xeon6 \
+  --detect-hardware \
+  --input-tokens 128 \
+  --output-tokens 128 \
+  --concurrency 32 \
+  --ttft-sla-ms 3000 \
+  --tpot-sla-ms 100 \
+  --generate-parallel-layout-sweep
+```
+
+The parallel-layout stage includes factor pairs satisfying:
+
+```text
+tensor-parallel-size * data-parallel-size = effective NUMA nodes
+```
+
+For two NUMA nodes this scans `TP=2, DP=1` and `TP=1, DP=2`; it intentionally
+excludes `TP=1, DP=1`. Scheduler baselines use
+`ceil(global concurrency / DP)` sequences per replica.
+
+Run the stages in order:
+
+```bash
+sweep/run_parallel_layout_sweep.sh
+sweep/recommend_parallel_layout.py --results-dir results/parallel-layout
+sweep/run_sweep.sh
+sweep/recommend.py
+```
+
+The first recommender writes `parallel-layout-config.yml`. The normal directed
+scheduler sweep then uses that selected TP/DP layout as its base configuration.
+
 ## Run and Recommend
 
 ```bash

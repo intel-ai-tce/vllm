@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-"""Select one measured scheduler recommendation from vLLM sweep results."""
+"""Select one measured parallel-layout or scheduler sweep recommendation."""
 
 from __future__ import annotations
 
@@ -24,6 +24,9 @@ DEFAULT_ENV_PATH: str | None = None
 DEFAULT_TTFT_SLA_MS: float | None = None
 DEFAULT_TPOT_SLA_MS: float | None = None
 DEFAULT_MINIMUM_COMPLIANCE: float = 0.99
+DEFAULT_RESULTS_DIR = "results/runtime-tuning"
+DEFAULT_OUTPUT_CONFIG = "recommended-config.yml"
+DEFAULT_OUTPUT_JSON = "recommendation.json"
 
 
 def _number(value: object) -> float | None:
@@ -80,21 +83,27 @@ def _aggregate_candidates(
     rows: list[dict[str, Any]],
     *,
     use_goodput: bool,
+    default_tensor_parallel_size: int = 1,
+    default_data_parallel_size: int = 1,
     ttft_sla_ms: float | None = None,
     tpot_sla_ms: float | None = None,
     minimum_compliance: float = DEFAULT_MINIMUM_COMPLIANCE,
 ) -> list[dict[str, Any]]:
-    grouped: dict[tuple[int, int], list[dict[str, Any]]] = defaultdict(list)
+    grouped: dict[tuple[int, int, int, int], list[dict[str, Any]]] = defaultdict(list)
 
     for row in rows:
         seqs = _positive_int(row, "max_num_seqs")
         batch = _positive_int(row, "max_num_batched_tokens")
+        tp = _positive_int(row, "tensor_parallel_size")
+        dp = _positive_int(row, "data_parallel_size")
+        tp = tp or default_tensor_parallel_size
+        dp = dp or default_data_parallel_size
         if seqs is None or batch is None:
             continue
-        grouped[(seqs, batch)].append(row)
+        grouped[(tp, dp, seqs, batch)].append(row)
 
     candidates: list[dict[str, Any]] = []
-    for (seqs, batch), runs in sorted(grouped.items()):
+    for (tp, dp, seqs, batch), runs in sorted(grouped.items()):
         failed_requests = sum(int(_number(run.get("failed")) or 0) for run in runs)
         output_throughput = _mean(runs, "output_throughput")
         request_throughput = _mean(runs, "request_throughput")
@@ -150,6 +159,8 @@ def _aggregate_candidates(
 
         candidates.append(
             {
+                "tensor_parallel_size": tp,
+                "data_parallel_size": dp,
                 "max_num_seqs": seqs,
                 "max_num_batched_tokens": batch,
                 "run_count": len(runs),
@@ -204,6 +215,8 @@ def _select_candidate(
                 candidate["mean_request_goodput"],
                 candidate["combined_compliance_ratio"] or 0.0,
                 candidate["mean_output_throughput"],
+                -candidate["data_parallel_size"],
+                -candidate["tensor_parallel_size"],
                 -candidate["max_num_batched_tokens"],
                 -candidate["max_num_seqs"],
             ),
@@ -221,6 +234,8 @@ def _select_candidate(
                     candidate["mean_output_throughput"],
                     candidate["combined_compliance_ratio"],
                     candidate["mean_request_goodput"],
+                    -candidate["data_parallel_size"],
+                    -candidate["tensor_parallel_size"],
                     -candidate["max_num_batched_tokens"],
                     -candidate["max_num_seqs"],
                 ),
@@ -234,6 +249,8 @@ def _select_candidate(
             valid,
             key=lambda candidate: (
                 candidate["mean_output_throughput"],
+                -candidate["data_parallel_size"],
+                -candidate["tensor_parallel_size"],
                 -candidate["max_num_batched_tokens"],
                 -candidate["max_num_seqs"],
             ),
@@ -274,13 +291,13 @@ def _write_config(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Select one recommended max-num-seqs/max-num-batched-tokens pair "
-            "from generated vLLM sweep results."
+            "Select one recommended TP/DP layout and scheduler setting from "
+            "generated vLLM sweep results."
         )
     )
     parser.add_argument(
         "--results-dir",
-        default="results/runtime-tuning",
+        default=DEFAULT_RESULTS_DIR,
         help="Sweep experiment directory (default: results/runtime-tuning).",
     )
     parser.add_argument(
@@ -316,12 +333,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-config",
-        default="recommended-config.yml",
+        default=DEFAULT_OUTPUT_CONFIG,
         help="Recommended config output path.",
     )
     parser.add_argument(
         "--output-json",
-        default="recommendation.json",
+        default=DEFAULT_OUTPUT_JSON,
         help="Recommendation evidence output path.",
     )
     return parser.parse_args()
@@ -350,6 +367,7 @@ def main() -> int:
             f"Sweep results were not found at {results_dir}. Run the sweep first."
         )
 
+    initial_config = _load_config(config_path)
     rows = _load_runs(results_dir)
     if not rows:
         raise ValueError(f"No summary.json sweep results found under {results_dir}.")
@@ -358,6 +376,8 @@ def main() -> int:
     candidates = _aggregate_candidates(
         rows,
         use_goodput=use_goodput,
+        default_tensor_parallel_size=int(initial_config.get("tensor-parallel-size", 1)),
+        default_data_parallel_size=int(initial_config.get("data-parallel-size", 1)),
         ttft_sla_ms=args.ttft_sla_ms,
         tpot_sla_ms=args.tpot_sla_ms,
         minimum_compliance=args.minimum_compliance,
@@ -366,9 +386,10 @@ def main() -> int:
         candidates, use_goodput=use_goodput
     )
 
-    initial_config = _load_config(config_path)
     if winner is not None:
         recommended_config = dict(initial_config)
+        recommended_config["tensor-parallel-size"] = winner["tensor_parallel_size"]
+        recommended_config["data-parallel-size"] = winner["data_parallel_size"]
         recommended_config["max-num-seqs"] = winner["max_num_seqs"]
         recommended_config["max-num-batched-tokens"] = winner["max_num_batched_tokens"]
         _write_config(
@@ -384,6 +405,8 @@ def main() -> int:
     recommended = None
     if winner is not None:
         recommended = {
+            "tensor_parallel_size": winner["tensor_parallel_size"],
+            "data_parallel_size": winner["data_parallel_size"],
             "max_num_seqs": winner["max_num_seqs"],
             "max_num_batched_tokens": winner["max_num_batched_tokens"],
         }
@@ -418,12 +441,16 @@ def main() -> int:
             "tpot_ms": args.tpot_sla_ms,
         },
         "initial": {
+            "tensor_parallel_size": initial_config.get("tensor-parallel-size"),
+            "data_parallel_size": initial_config.get("data-parallel-size", 1),
             "max_num_seqs": initial_config.get("max-num-seqs"),
             "max_num_batched_tokens": initial_config.get("max-num-batched-tokens"),
         },
         "recommended": recommended,
         "measured": measured,
         "best_effort": {
+            "tensor_parallel_size": best_effort["tensor_parallel_size"],
+            "data_parallel_size": best_effort["data_parallel_size"],
             "max_num_seqs": best_effort["max_num_seqs"],
             "max_num_batched_tokens": best_effort["max_num_batched_tokens"],
             "mean_request_goodput": best_effort["mean_request_goodput"],
@@ -445,6 +472,8 @@ def main() -> int:
 
     print("Recommended runtime configuration")
     print()
+    print(f"  tensor-parallel-size:   {winner['tensor_parallel_size']}")
+    print(f"  data-parallel-size:     {winner['data_parallel_size']}")
     print(f"  max-num-seqs:           {winner['max_num_seqs']}")
     print(f"  max-num-batched-tokens: {winner['max_num_batched_tokens']}")
     print()
