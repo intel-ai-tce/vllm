@@ -80,7 +80,7 @@ python3 tools/recipes/recipe_json_to_vllm_config.py \
 
 ### Stage 1: Select TP/DP
 
-Every candidate uses all effective NUMA nodes:
+The primary candidates use all effective NUMA nodes:
 
 ```text
 tensor-parallel-size * data-parallel-size = effective NUMA nodes
@@ -88,16 +88,20 @@ tensor-parallel-size * data-parallel-size = effective NUMA nodes
 
 TP is restricted to the supported values `1`, `2`, `4`, and `8`.
 
+The sweep also includes the largest supported TP size that does not exceed the
+effective NUMA-node count. This additional candidate may leave some NUMA nodes
+idle, but measures whether a larger single-replica TP layout performs better.
+
 | Effective NUMA nodes | Generated layouts |
 | ---: | --- |
 | 2 | `TP=2, DP=1`; `TP=1, DP=2` |
 | 4 | `TP=4, DP=1`; `TP=2, DP=2`; `TP=1, DP=4` |
-| 6 | `TP=2, DP=3`; `TP=1, DP=6` |
+| 6 | `TP=4, DP=1` (4 of 6 nodes); `TP=2, DP=3`; `TP=1, DP=6` |
 | 8 | `TP=8, DP=1`; `TP=4, DP=2`; `TP=2, DP=4`; `TP=1, DP=8` |
 
-`TP=1, DP=1` is therefore excluded on a multi-NUMA system. Unsupported layouts
-such as `TP=6, DP=1` are also excluded. Each candidate receives an initial
-per-replica scheduler baseline:
+`TP=1, DP=1` is excluded when it is neither a full-NUMA layout nor the largest
+supported TP candidate. Unsupported layouts such as `TP=6, DP=1` remain
+excluded. Each candidate receives an initial per-replica scheduler baseline:
 
 ```text
 max-num-seqs = ceil(global concurrency / data-parallel-size)

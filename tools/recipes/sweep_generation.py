@@ -146,25 +146,32 @@ def _scheduler_baseline_for_dp(
 def build_parallel_layout_params(
     config: dict[str, Any], workload: WorkloadHints, numa_node_count: int
 ) -> list[dict[str, Any]]:
-    """Build TP/DP layouts that use every effective NUMA node."""
+    """Build full-NUMA layouts plus the largest supported TP layout."""
     validate_sweep_workload(workload)
     if numa_node_count <= 1:
         raise ValueError("Parallel-layout sweep requires at least two NUMA nodes.")
 
     candidates = []
+    max_supported_tp = max(
+        size for size in SUPPORTED_TENSOR_PARALLEL_SIZES if size <= numa_node_count
+    )
     for tensor_parallel_size in range(numa_node_count, 0, -1):
-        if (
-            tensor_parallel_size not in SUPPORTED_TENSOR_PARALLEL_SIZES
-            or numa_node_count % tensor_parallel_size
-        ):
+        if tensor_parallel_size not in SUPPORTED_TENSOR_PARALLEL_SIZES:
             continue
-        data_parallel_size = numa_node_count // tensor_parallel_size
+        uses_all_numa_nodes = numa_node_count % tensor_parallel_size == 0
+        if not uses_all_numa_nodes and tensor_parallel_size != max_supported_tp:
+            continue
+        data_parallel_size = max(1, numa_node_count // tensor_parallel_size)
         max_num_seqs, max_num_batched_tokens = _scheduler_baseline_for_dp(
             config, workload, data_parallel_size
         )
+        name = f"tp{tensor_parallel_size}_dp{data_parallel_size}"
+        if not uses_all_numa_nodes:
+            used_nodes = tensor_parallel_size * data_parallel_size
+            name += f"_numa{used_nodes}of{numa_node_count}"
         candidates.append(
             {
-                "_benchmark_name": (f"tp{tensor_parallel_size}_dp{data_parallel_size}"),
+                "_benchmark_name": name,
                 "tensor_parallel_size": tensor_parallel_size,
                 "data_parallel_size": data_parallel_size,
                 "max_num_seqs": max_num_seqs,
@@ -505,13 +512,15 @@ def write_parallel_layout_sweep_files(
     guide.write_text(
         f"""# Staged Parallel-Layout and Scheduler Sweep
 
-All parallel-layout candidates use every effective NUMA node:
+Primary parallel-layout candidates use every effective NUMA node:
 
 ```text
 tensor_parallel_size * data_parallel_size = {numa_node_count}
 ```
 
 Tensor parallelism is restricted to `1`, `2`, `4`, or `8`.
+The largest supported TP not exceeding the NUMA-node count is also included,
+even when it leaves some NUMA nodes idle.
 
 Run the TP/DP scan first:
 
