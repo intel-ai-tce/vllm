@@ -115,6 +115,11 @@ sweep/run_parallel_layout_sweep.sh
 sweep/recommend_parallel_layout.py
 ```
 
+The generated run script performs one unmeasured warmup before each server
+layout. The warmup uses one full concurrency window, is retained as
+`warmup.json` for auditing, and is excluded from `summary.json`, `summary.csv`,
+and recommendation calculations. The normal three measured runs follow it.
+
 This writes:
 
 ```text

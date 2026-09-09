@@ -275,6 +275,7 @@ vllm bench sweep serve \
   --bench-params "${{SCRIPT_DIR}}/bench_params.json" \
   --output-dir "${{SCRIPT_DIR}}/results" \
   --experiment-name {experiment_name} \
+  --warmup-num-prompts {workload.concurrency} \
   "$@"
 """
     path.write_text(script, encoding="utf-8")
@@ -372,7 +373,10 @@ Resume an interrupted sweep:
 ./run_sweep.sh --resume
 ```
 
-By default, vLLM benchmarks each parameter combination three times.
+Before measurement, the generated script runs one unmeasured warmup containing
+one full concurrency window ({workload.concurrency} prompts). It is saved as
+`warmup.json` for auditing but excluded from recommendation statistics. By
+default, vLLM then benchmarks each parameter combination three times.
 {sla_text}
 ## Outputs
 
@@ -529,6 +533,10 @@ Run the TP/DP scan first:
 ./run_parallel_layout_sweep.sh
 ./recommend_parallel_layout.py --results-dir results/parallel-layout
 ```
+
+Each server layout receives an unmeasured {workload.concurrency}-prompt warmup
+before its three measured runs. The warmup is saved as `warmup.json` and is not
+included in recommendation statistics.
 
 The recommender writes `parallel-layout-config.yml`. Then tune
 `max-num-seqs` and `max-num-batched-tokens` around the selected layout:
